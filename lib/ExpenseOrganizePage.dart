@@ -12,11 +12,9 @@ class _OrganizeState extends State<ExpenseOrganizePage>
     with TickerProviderStateMixin {
   CalendarController calendarCtrl;
   AnimationController _animationController;
-  Map<DateTime, List> expenseSetList = {
-    DateTime(2020, 1, 1): ['New Year\'s Day'],
-    DateTime(2020, 1, 6): ['Epiphany'],
-    DateTime(2020, 2, 14): ['Valentine\'s Day'],
-  };
+  List<Map<String, dynamic>> monthExpenseDB;
+  Map<DateTime, List> expenseSetMap = {};
+  final expenseListKey = new GlobalKey<_ExpenseListState>();
 
   @override
   void initState() {
@@ -27,12 +25,35 @@ class _OrganizeState extends State<ExpenseOrganizePage>
       duration: const Duration(milliseconds: 400),
     );
     _animationController.forward();
-    loadDB();
+    loadDB(DateTime.now());
   }
 
-  Future loadDB()async{
+  Future loadDB(DateTime selectedDay) async {
+    int sameDayNum=0;
     await ExpensesTableDB.connectDB();
-
+//DateTime.now()
+    expenseSetMap = {};
+    monthExpenseDB = await ExpensesTableDB.getMonthData(
+        selectedDay.year.toString(), selectedDay.month.toString());
+    monthExpenseDB.forEach((expenses) {
+      if(sameDayNum==expenses['day']){
+        //print(expenses['createTime']);
+        expenseSetMap[
+          DateTime(expenses['year'], expenses['month'], expenses['day'])]
+            .add(expenses['createTime']+'.:.'+expenses['category']+'.:.'+expenses['inOrOut']+'.:.'+expenses['price']);
+      }else{
+        expenseSetMap.addAll({
+          DateTime(expenses['year'], expenses['month'], expenses['day']): [
+            expenses['createTime']+'.:.'+expenses['category']+'.:.'+expenses['inOrOut']+'.:.'+expenses['price']
+          ]
+        });
+      }
+      sameDayNum=expenses['day'];
+    });
+    setState(() {
+      expenseSetMap = expenseSetMap;
+    });
+    //print(expenseSetMap);
   }
 
   @override
@@ -42,48 +63,24 @@ class _OrganizeState extends State<ExpenseOrganizePage>
     super.dispose();
   }
 
-  Widget _buildEventsMarker(DateTime date, List events) {
-    print('eventmakerBuilded');
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        shape: BoxShape.rectangle,
-        color: calendarCtrl.isSelected(date)
-            ? Colors.brown[500]
-            : calendarCtrl.isToday(date) ? Colors.brown[300] : Colors.blue[400],
-      ),
-      width: 16.0,
-      height: 16.0,
-      child: Center(
-        child: Text(
-          '${events[0]}',
-          style: TextStyle().copyWith(
-            color: Colors.white,
-            fontSize: 12.0,
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
       children: <Widget>[
         TableCalendar(
-          onVisibleDaysChanged: (firstDay,lastDay,format){
-            print(firstDay);
-            expenseSetList.addAll({
-              DateTime(2020, 3, 21): ['Easter Sunday'],
-              DateTime(2020, 3, 28): ['Easter Monday'],
-            });
-            print('visiableDayChanged');
+          onVisibleDaysChanged: (firstDay, lastDay, format) {
+           // print('monthChanged');
+            if (firstDay.day > 20) {
+              loadDB(lastDay);
+            } else {
+              loadDB(firstDay);
+            }
           },
           headerStyle:
               HeaderStyle(centerHeaderTitle: true, formatButtonVisible: false),
           calendarController: calendarCtrl,
           //locale: 'ja_JP',
-          events: expenseSetList,
+          events: expenseSetMap,
           builders: CalendarBuilders(dayBuilder: (context, date, _) {
             return Container(
               decoration: BoxDecoration(
@@ -104,7 +101,6 @@ class _OrganizeState extends State<ExpenseOrganizePage>
               ),
             );
           }, todayDayBuilder: (context, date, _) {
-            print('todayDayBuilded!');
             return Container(
               decoration: BoxDecoration(
                 color: Colors.blue[200],
@@ -147,7 +143,23 @@ class _OrganizeState extends State<ExpenseOrganizePage>
             );
           }, markersBuilder: (context, date, expenseSet, holidays) {
             final children = <Widget>[];
-
+            int oneDayIncome=0;
+            int oneDayOutgo=0;
+            String dayTotalLabel='';
+            expenseSet.forEach((element) {
+              List<String> anExpense=element.split('.:.');
+              if(anExpense[2]=='true'){
+                oneDayOutgo+=int.parse(anExpense[3]);
+              }else{
+                oneDayIncome+=int.parse(anExpense[3]);
+              }
+            });
+            if(oneDayIncome!=0){
+              dayTotalLabel+='+'+oneDayIncome.toString()+'\n';
+            }
+            if(oneDayOutgo!=0){
+              dayTotalLabel+='-'+oneDayOutgo.toString();
+            }
             if (expenseSet.isNotEmpty) {
               children.add(Positioned(
                   child: Container(
@@ -162,7 +174,7 @@ class _OrganizeState extends State<ExpenseOrganizePage>
                     Text('${date.day}',
                         style: TextStyle().copyWith(fontSize: 14.0)),
                     Expanded(
-                      child: Text('合計 100円',
+                      child: Text(dayTotalLabel,
                           style: TextStyle().copyWith(fontSize: 12.0)),
                     )
                   ],
@@ -173,11 +185,12 @@ class _OrganizeState extends State<ExpenseOrganizePage>
             return children;
           }),
           onDaySelected: (day, events) {
-            print(day.toString());
+            //print(expenseListKey.currentState.dayExpensesTiles);
+            expenseListKey.currentState.buildListTiles(events);
           },
         ),
         Expanded(
-          child: ExpenseList(),
+          child: ExpenseList(key: expenseListKey,),
         )
       ],
     );
@@ -185,22 +198,48 @@ class _OrganizeState extends State<ExpenseOrganizePage>
 }
 
 class ExpenseList extends StatefulWidget {
+  ExpenseList({Key key}) : super(key: key);
   @override
   _ExpenseListState createState() => new _ExpenseListState();
 }
 
 class _ExpenseListState extends State<ExpenseList> {
+  List<Widget> dayExpensesTiles=[];
+
+  void buildListTiles(List<dynamic> tileInfos){
+    List<Widget> listTiles=[];
+    String inOrOutLabel;
+    tileInfos.forEach((element) {
+      List<String> tileLabels=element.split('.:.');
+      if(tileLabels[2]=='true'){
+        inOrOutLabel='-';
+      }else{
+        inOrOutLabel="+";
+      }
+      listTiles.add(
+          ListTile(title: Row(
+            children: <Widget>[
+              Expanded(
+                flex: 1,
+                child: Text(tileLabels[1]),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(inOrOutLabel+tileLabels[3]+'円'),
+              ),
+            ],
+          ),)
+      );
+    });
+    setState(() {
+      dayExpensesTiles=listTiles;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
-      children: <Widget>[
-        ListTile(
-          title: Text('abc'),
-        ),
-        ListTile(
-          title: Text('abc'),
-        ),
-      ],
+      children: dayExpensesTiles,
     );
   }
 }

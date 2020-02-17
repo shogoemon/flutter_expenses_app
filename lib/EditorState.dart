@@ -23,3 +23,13 @@ class EditorInputtedData{
     return EditorInputtedData.categoryList;
   }
 }
+
+class ExpenseObj{
+  String createTime;
+  String year;
+  String month;
+  String day;
+  String category;
+  String inOrOut;
+  String price;
+}

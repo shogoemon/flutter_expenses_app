@@ -8,16 +8,19 @@ import './db/Database.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class EditExpensePage extends StatefulWidget {
+  EditExpensePage({this.updateData});
+  final ExpenseObj updateData;
   @override
   _EditExpenseState createState() => _EditExpenseState();
 }
 
 class _EditExpenseState extends State<EditExpensePage> {
-
+  _EditExpenseState({this.updateData});
+  ExpenseObj updateData;
+  final priceFormKey = new GlobalKey<_PriceInputFormState>();
 
   @override
   void initState() {
-
     super.initState();
   }
 
@@ -27,7 +30,30 @@ class _EditExpenseState extends State<EditExpensePage> {
   }
 
   Future insetData()async{
-    await ExpensesTableDB.insertData();
+    if(updateData==null){
+      //追加
+      //oldData[0]
+      await ExpensesTableDB.insertData(
+          createTime:DateTime.now().toString(),
+          year: EditorInputtedData.selectedDay.year.toString(),
+          month: EditorInputtedData.selectedDay.month.toString(),
+          day: EditorInputtedData.selectedDay.day.toString(),
+          category:EditorInputtedData.selectedCategory,
+          inOrOut:EditorInputtedData.outOrInBool.toString(),
+          price:EditorInputtedData.inputPrice.toString()
+      );
+    }else{
+      //更新
+      await ExpensesTableDB.updateData(
+          createTime:updateData.createTime.toString(),
+          year: EditorInputtedData.selectedDay.year.toString(),
+          month: EditorInputtedData.selectedDay.month.toString(),
+          day: EditorInputtedData.selectedDay.day.toString(),
+          category:EditorInputtedData.selectedCategory,
+          inOrOut:EditorInputtedData.outOrInBool.toString(),
+          price:EditorInputtedData.inputPrice.toString()
+      );
+    }
   }
 
   @override
@@ -37,7 +63,7 @@ class _EditExpenseState extends State<EditExpensePage> {
         Column(
           children: <Widget>[
             InOrOutButtonForm(),
-            PriceInputForm(),
+            PriceInputForm(key:priceFormKey),
             CategorySelectorForm(),
             DataSelectorForm(),
             Container(
@@ -51,13 +77,9 @@ class _EditExpenseState extends State<EditExpensePage> {
                     ),
                   ),
                   onPressed: () {
-                    print(
-                        EditorInputtedData.inputPrice.toString()+''+
-                            EditorInputtedData.outOrInBool.toString()+''+
-                            EditorInputtedData.inputPrice.toString()+''+
-                            EditorInputtedData.selectedCategory+''+
-                            EditorInputtedData.selectedDay.toString()
-                    );
+                    insetData();
+                    EditorInputtedData.inputPrice=0;
+                    priceFormKey.currentState.setPrice();
                   },
                 ),
               ),
@@ -70,13 +92,15 @@ class _EditExpenseState extends State<EditExpensePage> {
 }
 
 class PriceInputForm extends StatefulWidget {
+  PriceInputForm({Key key}) : super(key: key);
   @override
   _PriceInputFormState createState() => new _PriceInputFormState();
 }
 
-class _PriceInputFormState extends State<PriceInputForm> {
+class _PriceInputFormState extends State<PriceInputForm>{
   TextEditingController moneyTxtCtrl = TextEditingController();
   final FocusNode txtFocus = FocusNode();
+  TextSelectionControls txtSelectionCtrl;
 
   KeyboardActionsConfig _buildConfig(BuildContext context) {
     return KeyboardActionsConfig(
@@ -86,6 +110,18 @@ class _PriceInputFormState extends State<PriceInputForm> {
         actions: [
           KeyboardAction(focusNode: txtFocus, displayDoneButton: true),
         ]);
+  }
+
+  @override
+  void initState() {
+    setPrice();
+    super.initState();
+  }
+
+  void setPrice(){
+    setState(() {
+      moneyTxtCtrl.text=EditorInputtedData.inputPrice.toString();
+    });
   }
 
   @override
@@ -100,6 +136,9 @@ class _PriceInputFormState extends State<PriceInputForm> {
             child: KeyboardActions(
                 config: _buildConfig(context),
                 child: TextField(
+
+                  //cursorColor: Colors.blue,
+                  //backgroundCursorColor: Colors.black,
                   keyboardType: TextInputType.numberWithOptions(),
                   style: TextStyle().copyWith(
                     fontSize: 30.0,
@@ -107,8 +146,10 @@ class _PriceInputFormState extends State<PriceInputForm> {
                   controller: moneyTxtCtrl,
                   focusNode: txtFocus,
                   onChanged: (value) {
-                    // EditorInputtedData.inputPrice=value;
+                    //txtSelectionCtrl.handlePaste();
+                    EditorInputtedData.inputPrice=int.parse(value);
                   },
+                  enableInteractiveSelection: false,
                 )),
           ),
           Column(
@@ -129,6 +170,7 @@ class _PriceInputFormState extends State<PriceInputForm> {
 }
 
 class InOrOutButtonForm extends StatefulWidget {
+  InOrOutButtonForm({Key key}) : super(key: key);
   @override
   _InOrOutButtonFormState createState() => new _InOrOutButtonFormState();
 }
@@ -146,12 +188,17 @@ class _InOrOutButtonFormState extends State<InOrOutButtonForm> {
         inButtonColor = falseColor;
         outButtonColor = trueColor;
       });
+    }else{
+      setState(() {
+        inButtonColor = trueColor;
+        outButtonColor = falseColor;
+      });
     }
     super.initState();
   }
 
   void switchBool(bool whichButton) {
-    print(EditorInputtedData.outOrInBool);
+    //print(EditorInputtedData.outOrInBool);
     if (EditorInputtedData.outOrInBool != whichButton) {
       EditorInputtedData.outOrInBool = !EditorInputtedData.outOrInBool;
       if (EditorInputtedData.outOrInBool) {
@@ -205,6 +252,7 @@ class _InOrOutButtonFormState extends State<InOrOutButtonForm> {
 }
 
 class CategorySelectorForm extends StatefulWidget {
+  CategorySelectorForm({Key key}) : super(key: key);
   @override
   _CategorySelectorFormState createState() => new _CategorySelectorFormState();
 }
@@ -281,6 +329,7 @@ class _CategorySelectorFormState extends State<CategorySelectorForm> {
 }
 
 class DataSelectorForm extends StatefulWidget {
+  DataSelectorForm({Key key}) : super(key: key);
   @override
   _DataSelectorFormState createState() => new _DataSelectorFormState();
 }
@@ -318,7 +367,7 @@ class _DataSelectorFormState extends State<DataSelectorForm> {
               EditorInputtedData.selectedDay=date;
               setDayLabel(date);
             }, onConfirm: (date) {
-              print('confirm $date');
+              //print('confirm $date');
             },
             currentTime: EditorInputtedData.selectedDay,
             locale: LocaleType.jp);

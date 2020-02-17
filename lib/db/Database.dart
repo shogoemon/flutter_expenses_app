@@ -24,7 +24,7 @@ class ExpensesTableDB {
   static void createExpensesTable(Database db) async {
     //テーブルを作成
     await db.execute(
-        'create table expensesTable(createTime text,year text,month text,day text,group text,inOrOut text,price text)');
+        'create table expensesTable(createTime text,year text,month text,day text,category text,inOrOut text,price text)');
   }
 
   static Future<int> insertData(
@@ -33,7 +33,7 @@ class ExpensesTableDB {
         String year,
         String month,
         String day,
-        String group,
+        String category,
         String inOrOut,
         String price
       }) async {
@@ -43,7 +43,7 @@ class ExpensesTableDB {
       'year': year,
       'month': month,
       'day': day,
-      'group': group,
+      'category': category,
       'inOrOut': inOrOut,
       'price': price
     });
@@ -59,24 +59,27 @@ class ExpensesTableDB {
         String year,
         String month,
         String day,
-        String group,
+        String category,
         String inOrOut,
-        String price}) async {
+        String price
+      }) async {
     return await connectedDB.update('expensesTable', {
       'createTime':createTime,
       'year': year,
       'month': month,
       'day': day,
-      'group': group,
+      'category': category,
       'inOrOut': inOrOut,
       'price': price
     },
-        where: 'createTime=?', whereArgs: [year, day]
+        where: 'createTime=?', whereArgs: [createTime]
     );
   }
 
   static Future getMonthData(String year, String month) async {
+    //SELECTを加えてソート
     return await connectedDB.query('expensesTable',
-        where: 'year=? AND month=?', whereArgs: [year, month]);
+        where: 'year=? AND month=?', whereArgs: [year, month],
+        orderBy: 'year asc,month asc,day asc');
   }
 }

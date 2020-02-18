@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import './ExpenseOrganizePage.dart';
 import './EditExpense.dart';
+import './ExpenseGraph.dart';
 
 void main() => runApp(MyApp());
 
@@ -13,7 +14,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      //home: MyHomePage(),
       home: MyHomePage(),
     );
   }
@@ -28,17 +28,67 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   PageController pageCtrl;
   int currentPageNum=0;
+  String appBarLabel='';
+  List<Widget> widgetPages=[];
+  List<Widget> appbarIcons=[];
+  Widget appbarIconData=Icon(Icons.swap_vertical_circle);
+  bool appbarIconBool=true;
 
   @override
   void initState() {
     super.initState();
     pageCtrl=new PageController();
+    if(this.currentPageNum==0){
+      setState(() {
+        this.appBarLabel='家計簿';
+        appbarIcons=buildAppbarIcon();
+      });
+    }else{
+      setState(() {
+        this.appBarLabel='追加';
+        appbarIcons=[];
+      });
+    }
+    widgetPages=[
+      ExpenseCalendarPage(),
+      EditExpensePage(onTapBottomNavigation:onTapBottomNavigation),
+    ];
+    appbarIcons=buildAppbarIcon();
   }
 
   @override
   void dispose() {
     pageCtrl.dispose();
     super.dispose();
+  }
+
+  void switchHomePage({bool isGraph}){
+    if(isGraph){
+      setState(() {
+        widgetPages=[
+          ExpenseGraphPage(),
+          EditExpensePage(onTapBottomNavigation:onTapBottomNavigation)
+        ];
+      });
+    }else{
+      setState(() {
+        widgetPages=[
+          ExpenseCalendarPage(),
+          EditExpensePage(onTapBottomNavigation:onTapBottomNavigation)
+        ];
+      });
+    }
+  }
+
+  void switchAppbarIcon(){
+    if(appbarIconBool){
+        appbarIconData=Icon(Icons.calendar_today);
+    }else{
+        appbarIconData=Icon(Icons.swap_vertical_circle);
+    }
+    setState(() {
+      appbarIcons=buildAppbarIcon();
+    });
   }
 
   void onTapBottomNavigation(int page) {
@@ -49,10 +99,24 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  List<Widget> buildAppbarIcon(){
+    return [IconButton(
+      icon: appbarIconData,
+      onPressed: (){
+        switchAppbarIcon();
+        switchHomePage(isGraph:appbarIconBool);
+        appbarIconBool=!appbarIconBool;
+      },
+    )];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("家計簿"),),
+      appBar: AppBar(
+        title: Text(appBarLabel),
+        actions: appbarIcons,
+      ),
       body: new PageView(
         physics:new NeverScrollableScrollPhysics(),
         controller: pageCtrl,
@@ -60,11 +124,19 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             this.currentPageNum=tappedPageNum;
           });
+          if(this.currentPageNum==0){
+            setState(() {
+              this.appBarLabel='家計簿';
+              appbarIcons=buildAppbarIcon();
+            });
+          }else{
+            setState(() {
+              this.appBarLabel='追加';
+              appbarIcons=[];
+            });
+          }
         },
-        children: <Widget>[
-          ExpenseOrganizePage(),
-          EditExpensePage(),
-        ],
+        children: widgetPages,
       ),
       bottomNavigationBar: BottomNavigationBar(
 
@@ -81,23 +153,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ]
       ),
-    );
-  }
-}
-
-class ExpenseList extends StatefulWidget{
-  @override
-  _ExpenseListState createState()=> new _ExpenseListState();
-}
-
-class _ExpenseListState extends State<ExpenseList>{
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: <Widget>[
-        ListTile(title: Text('abc'),),
-        ListTile(title: Text('abc'),),
-      ],
     );
   }
 }

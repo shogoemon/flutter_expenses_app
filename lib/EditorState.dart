@@ -4,6 +4,7 @@ class EditorInputtedData{
   static int inputPrice=0;
   static String selectedCategory;
   static DateTime selectedDay=DateTime.now();
+  static DateTime calendarSelectedDay=DateTime.now();
   static List<String> categoryList = [
     '未分類',
     '食費',

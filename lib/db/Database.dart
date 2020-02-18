@@ -76,6 +76,11 @@ class ExpensesTableDB {
     );
   }
 
+  static Future deleteData(String createTime) async {
+    return await connectedDB.delete('expensesTable',
+        where: 'createTime=?', whereArgs: [createTime]);
+  }
+
   static Future getMonthData(String year, String month) async {
     //SELECTを加えてソート
     return await connectedDB.query('expensesTable',

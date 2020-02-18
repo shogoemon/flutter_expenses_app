@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter/cupertino.dart';
 import './db/Database.dart';
+import './ReEditExpense.dart';
+import './EditorState.dart';
 
-class ExpenseOrganizePage extends StatefulWidget {
+class ExpenseCalendarPage extends StatefulWidget {
   @override
-  _OrganizeState createState() => _OrganizeState();
+  _CalendarState createState() => _CalendarState();
 }
 
-class _OrganizeState extends State<ExpenseOrganizePage>
+class _CalendarState extends State<ExpenseCalendarPage>
     with TickerProviderStateMixin {
   CalendarController calendarCtrl;
   AnimationController _animationController;
@@ -25,36 +27,55 @@ class _OrganizeState extends State<ExpenseOrganizePage>
       duration: const Duration(milliseconds: 400),
     );
     _animationController.forward();
-    loadDB(DateTime.now());
+    loadDB(EditorInputtedData.calendarSelectedDay).then((selectedDay) {
+      List<dynamic> events = expenseSetMap[
+          DateTime(selectedDay.year, selectedDay.month, selectedDay.day)];
+      events ??= [];
+      expenseListKey.currentState.buildListTiles(selectedDay, events);
+    });
   }
 
   Future loadDB(DateTime selectedDay) async {
-    int sameDayNum=0;
+    int sameDayNum = 0;
     await ExpensesTableDB.connectDB();
 //DateTime.now()
     expenseSetMap = {};
     monthExpenseDB = await ExpensesTableDB.getMonthData(
         selectedDay.year.toString(), selectedDay.month.toString());
     monthExpenseDB.forEach((expenses) {
-      if(sameDayNum==expenses['day']){
+      if (sameDayNum == expenses['day']) {
         //print(expenses['createTime']);
         expenseSetMap[
-          DateTime(expenses['year'], expenses['month'], expenses['day'])]
-            .add(expenses['createTime']+'.:.'+expenses['category']+'.:.'+expenses['inOrOut']+'.:.'+expenses['price']);
-      }else{
+                DateTime(expenses['year'], expenses['month'], expenses['day'])]
+            .add(expenses['createTime'] +
+                '.:.' +
+                expenses['category'] +
+                '.:.' +
+                expenses['inOrOut'] +
+                '.:.' +
+                expenses['price']);
+      } else {
         expenseSetMap.addAll({
           DateTime(expenses['year'], expenses['month'], expenses['day']): [
-            expenses['createTime']+'.:.'+expenses['category']+'.:.'+expenses['inOrOut']+'.:.'+expenses['price']
+            expenses['createTime'] +
+                '.:.' +
+                expenses['category'] +
+                '.:.' +
+                expenses['inOrOut'] +
+                '.:.' +
+                expenses['price']
           ]
         });
       }
-      sameDayNum=expenses['day'];
+      sameDayNum = expenses['day'];
     });
     setState(() {
       expenseSetMap = expenseSetMap;
     });
-    //print(expenseSetMap);
+    return selectedDay;
   }
+
+  Map<DateTime, List> expenseSetMapGetter() => expenseSetMap;
 
   @override
   void dispose() {
@@ -68,8 +89,8 @@ class _OrganizeState extends State<ExpenseOrganizePage>
     return Column(
       children: <Widget>[
         TableCalendar(
+          initialSelectedDay: EditorInputtedData.calendarSelectedDay,
           onVisibleDaysChanged: (firstDay, lastDay, format) {
-           // print('monthChanged');
             if (firstDay.day > 20) {
               loadDB(lastDay);
             } else {
@@ -93,10 +114,6 @@ class _OrganizeState extends State<ExpenseOrganizePage>
                 children: <Widget>[
                   Text('${date.day}',
                       style: TextStyle().copyWith(fontSize: 14.0)),
-//                  Expanded(
-//                    child: Text('合計 100000000円',
-//                        style: TextStyle().copyWith(fontSize: 12.0)),
-//                  )
                 ],
               ),
             );
@@ -134,31 +151,27 @@ class _OrganizeState extends State<ExpenseOrganizePage>
                 children: <Widget>[
                   Text('${date.day}',
                       style: TextStyle().copyWith(fontSize: 14.0)),
-//                  Expanded(
-//                    child: Text('合計 100000000円',
-//                        style: TextStyle().copyWith(fontSize: 12.0)),
-//                  )
                 ],
               ),
             );
           }, markersBuilder: (context, date, expenseSet, holidays) {
             final children = <Widget>[];
-            int oneDayIncome=0;
-            int oneDayOutgo=0;
-            String dayTotalLabel='';
+            int oneDayIncome = 0;
+            int oneDayOutgo = 0;
+            String dayTotalLabel = '';
             expenseSet.forEach((element) {
-              List<String> anExpense=element.split('.:.');
-              if(anExpense[2]=='true'){
-                oneDayOutgo+=int.parse(anExpense[3]);
-              }else{
-                oneDayIncome+=int.parse(anExpense[3]);
+              List<String> anExpense = element.split('.:.');
+              if (anExpense[2] == 'true') {
+                oneDayOutgo += int.parse(anExpense[3]);
+              } else {
+                oneDayIncome += int.parse(anExpense[3]);
               }
             });
-            if(oneDayIncome!=0){
-              dayTotalLabel+='+'+oneDayIncome.toString()+'\n';
+            if (oneDayIncome != 0) {
+              dayTotalLabel += '+' + oneDayIncome.toString() + '\n';
             }
-            if(oneDayOutgo!=0){
-              dayTotalLabel+='-'+oneDayOutgo.toString();
+            if (oneDayOutgo != 0) {
+              dayTotalLabel += '-' + oneDayOutgo.toString();
             }
             if (expenseSet.isNotEmpty) {
               children.add(Positioned(
@@ -185,12 +198,12 @@ class _OrganizeState extends State<ExpenseOrganizePage>
             return children;
           }),
           onDaySelected: (day, events) {
-            //print(expenseListKey.currentState.dayExpensesTiles);
-            expenseListKey.currentState.buildListTiles(events);
+            EditorInputtedData.calendarSelectedDay=day;
+            expenseListKey.currentState.buildListTiles(day, events);
           },
         ),
         Expanded(
-          child: ExpenseList(key: expenseListKey,),
+          child: ExpenseList(loadDB, expenseSetMapGetter, key: expenseListKey),
         )
       ],
     );
@@ -198,41 +211,90 @@ class _OrganizeState extends State<ExpenseOrganizePage>
 }
 
 class ExpenseList extends StatefulWidget {
-  ExpenseList({Key key}) : super(key: key);
+  ExpenseList(this.reLoadDB, this.expenseSetMapGetter, {Key key})
+      : super(key: key);
+  final Function reLoadDB;
+  final Function expenseSetMapGetter;
   @override
-  _ExpenseListState createState() => new _ExpenseListState();
+  _ExpenseListState createState() =>
+      new _ExpenseListState(reLoadDB, expenseSetMapGetter);
 }
 
 class _ExpenseListState extends State<ExpenseList> {
-  List<Widget> dayExpensesTiles=[];
+  _ExpenseListState(this.reLoadDB, this.expenseSetMapGetter);
+  Function reLoadDB;
+  final Function expenseSetMapGetter;
+  DateTime selectedDay;
+  List<Widget> dayExpensesTiles = [];
 
-  void buildListTiles(List<dynamic> tileInfos){
-    List<Widget> listTiles=[];
+  void buildListTiles(DateTime selectedDay, List<dynamic> tileInfos) {
+    List<Widget> listTiles = [];
     String inOrOutLabel;
+    int oneDayIncome = 0;
+    int oneDayOutgo = 0;
     tileInfos.forEach((element) {
-      List<String> tileLabels=element.split('.:.');
-      if(tileLabels[2]=='true'){
-        inOrOutLabel='-';
-      }else{
-        inOrOutLabel="+";
+      List<String> tileLabels = element.split('.:.');
+      if (tileLabels[2] == 'true') {
+        inOrOutLabel = '-';
+        oneDayOutgo += int.parse(tileLabels[3]);
+      } else {
+        inOrOutLabel = "+";
+        oneDayIncome += int.parse(tileLabels[3]);
       }
-      listTiles.add(
-          ListTile(title: Row(
-            children: <Widget>[
-              Expanded(
-                flex: 1,
-                child: Text(tileLabels[1]),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(inOrOutLabel+tileLabels[3]+'円'),
-              ),
-            ],
-          ),)
-      );
+      listTiles.add(ListTile(
+        title: Row(
+          children: <Widget>[
+            Expanded(
+              flex: 1,
+              child: Text(tileLabels[1]),
+            ),
+            Expanded(
+              flex: 1,
+              child: Text(inOrOutLabel + tileLabels[3] + '円'),
+            ),
+          ],
+        ),
+        onTap: () {
+          EditorInputtedData.outOrInBool = (tileLabels[2] == 'true');
+          EditorInputtedData.inputPrice = int.parse(tileLabels[3]);
+          EditorInputtedData.selectedCategory = tileLabels[1];
+          EditorInputtedData.selectedDay = selectedDay;
+          Navigator.of(context)
+              .push(MaterialPageRoute(
+                  builder: (context) => ReEditExpensePage(tileLabels[0])))
+              .then((value) {
+            if (value) {
+              reLoadDB(selectedDay).then((selectedDay) {
+                List<dynamic> events = expenseSetMapGetter()[DateTime(
+                    selectedDay.year, selectedDay.month, selectedDay.day)];
+                events ??= [];
+                buildListTiles(selectedDay, events);
+              });
+            }
+            // buildListTiles(selectedDay,);
+          });
+        },
+      ));
     });
+    listTiles = <Widget>[
+          ListTile(
+            title: Row(
+              children: <Widget>[
+                Expanded(
+                  flex: 1,
+                  child: Text('収入:+' + oneDayIncome.toString() + '円'),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text('支出:-' + oneDayOutgo.toString() + '円'),
+                ),
+              ],
+            ),
+          ),
+        ] +
+        listTiles;
     setState(() {
-      dayExpensesTiles=listTiles;
+      dayExpensesTiles = listTiles;
     });
   }
 

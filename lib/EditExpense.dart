@@ -8,15 +8,17 @@ import './db/Database.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class EditExpensePage extends StatefulWidget {
-  EditExpensePage({this.updateData});
-  final ExpenseObj updateData;
+  EditExpensePage({this.updateData,this.onTapBottomNavigation});
+  final String updateData;
+  final Function onTapBottomNavigation;
   @override
-  _EditExpenseState createState() => _EditExpenseState();
+  _EditExpenseState createState() => _EditExpenseState(updateData: updateData,onTapBottomNavigation: onTapBottomNavigation);
 }
 
 class _EditExpenseState extends State<EditExpensePage> {
-  _EditExpenseState({this.updateData});
-  ExpenseObj updateData;
+  _EditExpenseState({this.updateData,this.onTapBottomNavigation});
+  Function onTapBottomNavigation;
+  String updateData;
   final priceFormKey = new GlobalKey<_PriceInputFormState>();
 
   @override
@@ -29,7 +31,7 @@ class _EditExpenseState extends State<EditExpensePage> {
     super.dispose();
   }
 
-  Future insetData()async{
+  Future insertData()async{
     if(updateData==null){
       //追加
       //oldData[0]
@@ -45,7 +47,7 @@ class _EditExpenseState extends State<EditExpensePage> {
     }else{
       //更新
       await ExpensesTableDB.updateData(
-          createTime:updateData.createTime.toString(),
+          createTime:updateData,
           year: EditorInputtedData.selectedDay.year.toString(),
           month: EditorInputtedData.selectedDay.month.toString(),
           day: EditorInputtedData.selectedDay.day.toString(),
@@ -77,9 +79,15 @@ class _EditExpenseState extends State<EditExpensePage> {
                     ),
                   ),
                   onPressed: () {
-                    insetData();
+                    insertData();
+                    FocusScope.of(context).requestFocus(FocusNode());
                     EditorInputtedData.inputPrice=0;
                     priceFormKey.currentState.setPrice();
+                    if(updateData!=null){
+                      Navigator.of(context).pop(true);
+                    }else{
+                      onTapBottomNavigation(0);
+                    }
                   },
                 ),
               ),

@@ -81,10 +81,35 @@ class ExpensesTableDB {
         where: 'createTime=?', whereArgs: [createTime]);
   }
 
-  static Future getMonthData(String year, String month) async {
-    //SELECTを加えてソート
+  static Future getDataFromCalendar({String year, String month}) async {
     return await connectedDB.query('expensesTable',
         where: 'year=? AND month=?', whereArgs: [year, month],
         orderBy: 'year asc,month asc,day asc');
+  }
+
+  static Future getDataFromGraph({String year, String month, String day}) async {
+    List<Map<String,dynamic>>loadedTernData;
+    if(month==null){
+      //一年間のデータ
+      loadedTernData=
+      await connectedDB.query('expensesTable',
+          where: 'year=?', whereArgs: [year],
+          orderBy: 'inOrOut asc,category asc');
+    }else{
+      //一月間のデータ
+      if(day==null){
+        loadedTernData=
+        await connectedDB.query('expensesTable',
+            where: 'year=? AND month=?', whereArgs: [year, month],
+            orderBy: 'inOrOut asc,category asc');
+      }else{
+        //１日間のデータ
+        loadedTernData=
+        await connectedDB.query('expensesTable',
+            where: 'year=? AND month=? AND day=?', whereArgs: [year, month, day],
+            orderBy: 'inOrOut asc,category asc');
+      }
+    }
+    return loadedTernData;
   }
 }

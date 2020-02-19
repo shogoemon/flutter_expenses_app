@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:infinity_page_view/infinity_page_view.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
-import 'dart:math';
+import './db/Database.dart';
+import './EditorState.dart';
+import './EditExpense.dart';
 
 class ExpenseGraphPage extends StatefulWidget {
   @override
@@ -9,18 +10,80 @@ class ExpenseGraphPage extends StatefulWidget {
 }
 
 class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
-  String label;
-  int itemCount;
-  InfinityPageController infinityPageController;
-  List<Map<String, dynamic>> loadedExpenseDB;
+  List<Map<String, dynamic>> loadedExpenseList;
   Map<DateTime, List> expenseSetMap = {};
+  List<String> oCategories=[];
+  List<int> oTotalPrices=[];
+  List<int> oPercentages=[];
+  int oTotalPrice=0;
+  List<String> iCategories=[];
+  List<int> iTotalPrices=[];
+  List<int> iPercentages=[];
+  int iTotalPrice=0;
 
+  Future loadDB(DateTime selectedDay)async{
+    await ExpensesTableDB.connectDB();
+    expenseSetMap = {};
+    switch(EditorInputtedData.ternNum){
+      case 0:{
+        //１日間のデータ
+        loadedExpenseList = await ExpensesTableDB.getDataFromGraph(
+            year:selectedDay.year.toString(),month:selectedDay.month.toString(),day:selectedDay.day.toString()
+        );
+        break;
+      }
+      case 1:{
+        //１月間のデータ
+        loadedExpenseList = await ExpensesTableDB.getDataFromGraph(
+            year:selectedDay.year.toString(),month:selectedDay.month.toString()
+        );
+        break;}
+      case 2:{
+        //１年間のデータ
+        loadedExpenseList = await ExpensesTableDB.getDataFromGraph(
+            year:selectedDay.year.toString()
+        );
+        break;}
+    }
+    loadedExpenseList.forEach((element) {
+      int price=int.parse(element['price']);
+
+      switch(element['inOrOut']){
+        case 'true':{
+          oTotalPrice+=price;
+          if(oCategories.indexOf(element['category'])==-1){
+            oCategories.add(element['category']);
+            oTotalPrices.add(price);
+          }else{
+            oTotalPrices[oTotalPrices.length-1]+=price;
+          }
+          break;
+        }
+        case "false":{
+          iTotalPrice+=price;
+          if(iCategories.indexOf(element['category'])==-1){
+            iCategories.add(element['category']);
+            iTotalPrices.add(price);
+          }else{
+            iTotalPrices[iTotalPrices.length-1]+=price;
+          }
+          break;
+        }
+      }
+    });
+    oTotalPrices.forEach((price) {
+      oPercentages.add(((price/oTotalPrice)*100).round());
+    });
+    iTotalPrices.forEach((price) {
+      iPercentages.add(((price/iTotalPrice)*100).round());
+    });
+    print(oPercentages);
+    print(iPercentages);
+  }
 
   @override
   void initState() {
-    infinityPageController = new InfinityPageController(initialPage: 0);
-    itemCount = 3;
-    label = "1/" + itemCount.toString() + "";
+    loadDB(EditorInputtedData.calendarSelectedDay);
     super.initState();
   }
 
@@ -28,25 +91,13 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
   Widget build(BuildContext context) {
     return new Column(
       children: <Widget>[
-        GraphHeader(infinityPageController),
+        GraphHeader(),
+        InOrOutButtonForm(),
         SizedBox(
-          height: 300.0,
-          child: new InfinityPageView(
-            pageSnapping: true,
-            itemBuilder: (BuildContext context, int index) {
-              return Center(
-                child: ExpenseGraph(),
-              );
-            },
-            itemCount: itemCount,
-            onPageChanged: (int index) {
-              print(index.toString());
-              setState(() {
-                label = "${index + 1}" + "/" + itemCount.toString();
-              });
-            },
-            controller: infinityPageController,
-          ),
+          height: 250.0,
+          child: Center(
+            child: ExpenseGraph(),
+          )
         ),
         Expanded(
           child: ListView(
@@ -61,15 +112,11 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
 }
 
 class GraphHeader extends StatefulWidget{
-  GraphHeader(this.infinityPageCtrl);
-  final InfinityPageController infinityPageCtrl;
   @override
-  _GraphHeaderState createState()=> new _GraphHeaderState(infinityPageCtrl);
+  _GraphHeaderState createState()=> new _GraphHeaderState();
 }
 
 class _GraphHeaderState extends State<GraphHeader>{
-  _GraphHeaderState(this.infinityPageCtrl);
-  InfinityPageController infinityPageCtrl;
 
   @override
   Widget build(BuildContext context) {
@@ -79,8 +126,7 @@ class _GraphHeaderState extends State<GraphHeader>{
             IconButton(
                 icon: Icon(Icons.keyboard_arrow_left),
                 onPressed: () {
-                  infinityPageCtrl
-                      .jumpToPage(infinityPageCtrl.page - 1);
+                  //日付を変えてデータをリロードして画面の更新
                 }),
             Expanded(
               child: Center(
@@ -90,8 +136,7 @@ class _GraphHeaderState extends State<GraphHeader>{
             IconButton(
                 icon: Icon(Icons.keyboard_arrow_right),
                 onPressed: () {
-                  infinityPageCtrl
-                      .jumpToPage(infinityPageCtrl.page + 1);
+                  //日付を変えてデータをリロードして画面の更新
                 })
           ],
         )
@@ -101,80 +146,74 @@ class _GraphHeaderState extends State<GraphHeader>{
 
 class ExpenseGraph extends StatefulWidget{
   @override
-  _ExpenseGraphState createState()=> new _ExpenseGraphState(_ExpenseGraphState._createRandomData());
+  _ExpenseGraphState createState()=> new _ExpenseGraphState(_ExpenseGraphState._createSampleData());
 }
 
 class _ExpenseGraphState extends State<ExpenseGraph>{
   _ExpenseGraphState(this.seriesList, {this.animate});
-  final List<charts.Series> seriesList;
-  final bool animate;
+  List<charts.Series> seriesList=[];
+  bool animate=true;
 
   factory _ExpenseGraphState.withSampleData() {
     return new _ExpenseGraphState(
       _createSampleData(),
-      // Disable animations for image tests.
       animate: false,
     );
   }
 
-  factory _ExpenseGraphState.withRandomData() {
-    return new _ExpenseGraphState(
-        _createRandomData(),
-      animate: false
-    );
+  @override
+  void initState() {
+    //animate=false;
+    super.initState();
   }
-
-  static List<charts.Series<LinearSales, int>> _createRandomData() {
-    final random = new Random();
-
-    final data = [
-      new LinearSales(0, random.nextInt(100)),
-      new LinearSales(1, random.nextInt(100)),
-      new LinearSales(2, random.nextInt(100)),
-      new LinearSales(3, random.nextInt(100)),
-    ];
-
-    return [
-      new charts.Series<LinearSales, int>(
-        id: 'Sales',
-        domainFn: (LinearSales sales, _) => sales.year,
-        measureFn: (LinearSales sales, _) => sales.sales,
-        data: data,
-      )
-    ];
-  }
-  // EXCLUDE_FROM_GALLERY_DOCS_END
-
 
   @override
   Widget build(BuildContext context) {
-    return charts.PieChart(seriesList,
+    return charts.PieChart(
+        seriesList,
         animate: animate,
-        defaultRenderer: new charts.ArcRendererConfig(arcWidth: 60));
+        defaultRenderer: new charts.ArcRendererConfig(arcWidth: 50,
+        arcRendererDecorators: [new charts.ArcLabelDecorator(
+          labelPosition: charts.ArcLabelPosition.outside,
+          outsideLabelStyleSpec: new charts.TextStyleSpec(fontSize: 20),
+        )]),
+    );
   }
 
-  static List<charts.Series<LinearSales, int>> _createSampleData() {
+  static List<charts.Series<LinearExpenses, int>> _createSampleData() {
     final data = [
-      new LinearSales(0, 100),
-      new LinearSales(1, 75),
-      new LinearSales(2, 25),
-      new LinearSales(3, 5),
+      new LinearExpenses(0, 100),
+      new LinearExpenses(1, 75),
+      new LinearExpenses(2, 25),
+      new LinearExpenses(3, 5),
+      new LinearExpenses(5, 100),
+      new LinearExpenses(6, 75),
+      new LinearExpenses(7, 25),
+      new LinearExpenses(8, 5),
     ];
 
     return [
-      new charts.Series<LinearSales, int>(
+      new charts.Series<LinearExpenses, int>(
         id: 'Sales',
-        domainFn: (LinearSales sales, _) => sales.year,
-        measureFn: (LinearSales sales, _) => sales.sales,
+//        colorFn: (_, __){
+//          var colorData=charts.MaterialPalette.blue.makeShades(__+1)[__];
+//          print(colorData.g);
+//          return colorData;
+//        },
+        domainFn: (LinearExpenses sales, _){return sales.year;},
+        measureFn: (LinearExpenses sales, _){return sales.sales;},
         data: data,
+          labelAccessorFn:(LinearExpenses row, _){
+          return 'aaaaaaaaaaa';
+          },
       )
     ];
   }
 }
 
-class LinearSales {
+class LinearExpenses {
   final int year;
   final int sales;
 
-  LinearSales(this.year, this.sales);
+  LinearExpenses(this.year, this.sales);
 }

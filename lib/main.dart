@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import './ExpenseOrganizePage.dart';
 import './EditExpense.dart';
 import './ExpenseGraph.dart';
+import './EditorState.dart';
 
 void main() => runApp(MyApp());
 
@@ -28,7 +29,6 @@ class _MyHomePageState extends State<MyHomePage> {
   PageController pageCtrl;
   int currentPageNum = 0;
   String appBarLabel = '';
-  int ternNum = 0;
   Widget leadingIcon;
   List<Widget> widgetPages = [];
   List<Widget> appbarIcons = [];
@@ -69,19 +69,28 @@ class _MyHomePageState extends State<MyHomePage> {
               title: Text("表示切り替え"),
               children: <Widget>[
                 SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: (){
+                    EditorInputtedData.ternNum=0;
+                    Navigator.pop(context);
+                  },
                   child: ListTile(
                     title: Text("日別"),
                   ),
                 ),
                 SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: (){
+                    EditorInputtedData.ternNum=1;
+                    Navigator.pop(context);
+                  },
                   child: ListTile(
                     title: Text("月別"),
                   ),
                 ),
                 SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: (){
+                    EditorInputtedData.ternNum=2;
+                    Navigator.pop(context);
+                  },
                   child: ListTile(
                     title: Text("年別"),
                   ),

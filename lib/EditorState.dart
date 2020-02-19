@@ -3,6 +3,7 @@ class EditorInputtedData{
   static bool outOrInBool=true;
   static int inputPrice=0;
   static String selectedCategory;
+  static int ternNum=0;
   static DateTime selectedDay=DateTime.now();
   static DateTime calendarSelectedDay=DateTime.now();
   static List<String> categoryList = [

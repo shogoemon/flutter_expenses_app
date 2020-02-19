@@ -44,8 +44,8 @@ class _CalendarState extends State<ExpenseCalendarPage>
     await ExpensesTableDB.connectDB();
 //DateTime.now()
     expenseSetMap = {};
-    monthExpenseDB = await ExpensesTableDB.getMonthData(
-        selectedDay.year.toString(), selectedDay.month.toString());
+    monthExpenseDB = await ExpensesTableDB.getDataFromCalendar(
+        year:selectedDay.year.toString(), month:selectedDay.month.toString());
     monthExpenseDB.forEach((expenses) {
       if (sameDayNum == expenses['day']) {
         //print(expenses['createTime']);

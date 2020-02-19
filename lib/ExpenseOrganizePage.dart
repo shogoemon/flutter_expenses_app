@@ -6,12 +6,16 @@ import './ReEditExpense.dart';
 import './EditorState.dart';
 
 class ExpenseCalendarPage extends StatefulWidget {
+  ExpenseCalendarPage(this.onTapBottomNavigation);
+  final Function onTapBottomNavigation;
   @override
-  _CalendarState createState() => _CalendarState();
+  _CalendarState createState() => _CalendarState(onTapBottomNavigation);
 }
 
 class _CalendarState extends State<ExpenseCalendarPage>
     with TickerProviderStateMixin {
+  _CalendarState(this.onTapBottomNavigation);
+  final Function onTapBottomNavigation;
   CalendarController calendarCtrl;
   AnimationController _animationController;
   List<Map<String, dynamic>> monthExpenseDB;
@@ -86,96 +90,25 @@ class _CalendarState extends State<ExpenseCalendarPage>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        TableCalendar(
-          initialSelectedDay: EditorInputtedData.calendarSelectedDay,
-          onVisibleDaysChanged: (firstDay, lastDay, format) {
-            if (firstDay.day > 20) {
-              loadDB(lastDay);
-            } else {
-              loadDB(firstDay);
-            }
-          },
-          headerStyle:
-              HeaderStyle(centerHeaderTitle: true, formatButtonVisible: false),
-          calendarController: calendarCtrl,
-          //locale: 'ja_JP',
-          events: expenseSetMap,
-          builders: CalendarBuilders(dayBuilder: (context, date, _) {
-            return Container(
-              decoration: BoxDecoration(
-                border: Border.all(width: 0.0),
-                borderRadius: BorderRadius.circular(0.0),
-              ),
-              padding: const EdgeInsets.all(2.5),
-              alignment: Alignment(0, -1.0),
-              child: Column(
-                children: <Widget>[
-                  Text('${date.day}',
-                      style: TextStyle().copyWith(fontSize: 14.0)),
-                ],
-              ),
-            );
-          }, todayDayBuilder: (context, date, _) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.blue[200],
-                border: Border.all(width: 0.0),
-                borderRadius: BorderRadius.circular(0.0),
-              ),
-              padding: const EdgeInsets.all(2.5),
-              alignment: Alignment(0, -1.0),
-              child: Column(
-                children: <Widget>[
-                  Text('${date.day}',
-                      style: TextStyle().copyWith(fontSize: 14.0)),
-//                  Expanded(
-//                    child: Text('合計 100000000円',
-//                        style: TextStyle().copyWith(fontSize: 12.0)),
-//                  )
-                ],
-              ),
-            );
-          }, selectedDayBuilder: (context, date, _) {
-            Color selectedColor = Colors.red;
-            return Container(
-              decoration: BoxDecoration(
-                color: selectedColor,
-                border: Border.all(width: 0.0),
-                borderRadius: BorderRadius.circular(0.0),
-              ),
-              padding: const EdgeInsets.all(2.5),
-              alignment: Alignment(0, -1.0),
-              child: Column(
-                children: <Widget>[
-                  Text('${date.day}',
-                      style: TextStyle().copyWith(fontSize: 14.0)),
-                ],
-              ),
-            );
-          }, markersBuilder: (context, date, expenseSet, holidays) {
-            final children = <Widget>[];
-            int oneDayIncome = 0;
-            int oneDayOutgo = 0;
-            String dayTotalLabel = '';
-            expenseSet.forEach((element) {
-              List<String> anExpense = element.split('.:.');
-              if (anExpense[2] == 'true') {
-                oneDayOutgo += int.parse(anExpense[3]);
+    return SingleChildScrollView(
+      child: Column(
+        children: <Widget>[
+          TableCalendar(
+            initialSelectedDay: EditorInputtedData.calendarSelectedDay,
+            onVisibleDaysChanged: (firstDay, lastDay, format) {
+              if (firstDay.day > 20) {
+                loadDB(lastDay);
               } else {
-                oneDayIncome += int.parse(anExpense[3]);
+                loadDB(firstDay);
               }
-            });
-            if (oneDayIncome != 0) {
-              dayTotalLabel += '+' + oneDayIncome.toString() + '\n';
-            }
-            if (oneDayOutgo != 0) {
-              dayTotalLabel += '-' + oneDayOutgo.toString();
-            }
-            if (expenseSet.isNotEmpty) {
-              children.add(Positioned(
-                  child: Container(
+            },
+            headerStyle:
+            HeaderStyle(centerHeaderTitle: true, formatButtonVisible: false),
+            calendarController: calendarCtrl,
+            //locale: 'ja_JP',
+            events: expenseSetMap,
+            builders: CalendarBuilders(dayBuilder: (context, date, _) {
+              return Container(
                 decoration: BoxDecoration(
                   border: Border.all(width: 0.0),
                   borderRadius: BorderRadius.circular(0.0),
@@ -186,26 +119,101 @@ class _CalendarState extends State<ExpenseCalendarPage>
                   children: <Widget>[
                     Text('${date.day}',
                         style: TextStyle().copyWith(fontSize: 14.0)),
-                    Expanded(
-                      child: Text(dayTotalLabel,
-                          style: TextStyle().copyWith(fontSize: 12.0)),
-                    )
                   ],
                 ),
-              )));
-            }
+              );
+            }, todayDayBuilder: (context, date, _) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.blue[200],
+                  border: Border.all(width: 0.0),
+                  borderRadius: BorderRadius.circular(0.0),
+                ),
+                padding: const EdgeInsets.all(2.5),
+                alignment: Alignment(0, -1.0),
+                child: Column(
+                  children: <Widget>[
+                    Text('${date.day}',
+                        style: TextStyle().copyWith(fontSize: 14.0)),
+//                  Expanded(
+//                    child: Text('合計 100000000円',
+//                        style: TextStyle().copyWith(fontSize: 12.0)),
+//                  )
+                  ],
+                ),
+              );
+            }, selectedDayBuilder: (context, date, _) {
+              Color selectedColor = Colors.red;
+              return Container(
+                decoration: BoxDecoration(
+                  color: selectedColor,
+                  border: Border.all(width: 0.0),
+                  borderRadius: BorderRadius.circular(0.0),
+                ),
+                padding: const EdgeInsets.all(2.5),
+                alignment: Alignment(0, -1.0),
+                child: Column(
+                  children: <Widget>[
+                    Text('${date.day}',
+                        style: TextStyle().copyWith(fontSize: 14.0)),
+                  ],
+                ),
+              );
+            }, markersBuilder: (context, date, expenseSet, holidays) {
+              final children = <Widget>[];
+              int oneDayIncome = 0;
+              int oneDayOutgo = 0;
+              String dayTotalLabel = '';
+              expenseSet.forEach((element) {
+                List<String> anExpense = element.split('.:.');
+                if (anExpense[2] == 'true') {
+                  oneDayOutgo += int.parse(anExpense[3]);
+                } else {
+                  oneDayIncome += int.parse(anExpense[3]);
+                }
+              });
+              if (oneDayIncome != 0) {
+                dayTotalLabel += '+' + oneDayIncome.toString() + '\n';
+              }
+              if (oneDayOutgo != 0) {
+                dayTotalLabel += '-' + oneDayOutgo.toString();
+              }
+              if (expenseSet.isNotEmpty) {
+                children.add(Positioned(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(width: 0.0),
+                        borderRadius: BorderRadius.circular(0.0),
+                      ),
+                      padding: const EdgeInsets.all(2.5),
+                      alignment: Alignment(0, -1.0),
+                      child: Column(
+                        children: <Widget>[
+                          Text('${date.day}',
+                              style: TextStyle().copyWith(fontSize: 14.0)),
+                          Expanded(
+                            child: Text(dayTotalLabel,
+                                style: TextStyle().copyWith(fontSize: 12.0)),
+                          )
+                        ],
+                      ),
+                    )));
+              }
 
-            return children;
-          }),
-          onDaySelected: (day, events) {
-            EditorInputtedData.calendarSelectedDay=day;
-            expenseListKey.currentState.buildListTiles(day, events);
-          },
-        ),
-        Expanded(
-          child: ExpenseList(loadDB, expenseSetMapGetter, key: expenseListKey),
-        )
-      ],
+              return children;
+            }),
+            onDaySelected: (day, events) {
+              EditorInputtedData.calendarSelectedDay=day;
+              expenseListKey.currentState.buildListTiles(day, events);
+            },
+            onDayLongPressed: (day, events){
+              EditorInputtedData.selectedDay=day;
+              onTapBottomNavigation(1);
+            },
+          ),
+          ExpenseList(loadDB, expenseSetMapGetter, key: expenseListKey),
+        ],
+      )
     );
   }
 }
@@ -300,7 +308,7 @@ class _ExpenseListState extends State<ExpenseList> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return Column(
       children: dayExpensesTiles,
     );
   }

@@ -3,6 +3,8 @@ import 'package:charts_flutter/flutter.dart' as charts;
 import './db/Database.dart';
 import './EditorState.dart';
 import './EditExpense.dart';
+import "package:intl/intl.dart";
+import 'package:intl/date_symbol_data_local.dart';
 
 class ExpenseGraphPage extends StatefulWidget {
   @override
@@ -10,8 +12,9 @@ class ExpenseGraphPage extends StatefulWidget {
 }
 
 class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
+  final categoryListKey = new GlobalKey<_CategoryListState>();
+  final expenseGraphKey = new GlobalKey<_ExpenseGraphState>();
   List<Map<String, dynamic>> loadedExpenseList;
-  Map<DateTime, List> expenseSetMap = {};
   List<String> oCategories=[];
   List<int> oTotalPrices=[];
   List<int> oPercentages=[];
@@ -23,7 +26,14 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
 
   Future loadDB(DateTime selectedDay)async{
     await ExpensesTableDB.connectDB();
-    expenseSetMap = {};
+    oCategories=[];
+    oTotalPrices=[];
+    oPercentages=[];
+    oTotalPrice=0;
+    iCategories=[];
+    iTotalPrices=[];
+    iPercentages=[];
+    iTotalPrice=0;
     switch(EditorInputtedData.ternNum){
       case 0:{
         //１日間のデータ
@@ -77,13 +87,35 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
     iTotalPrices.forEach((price) {
       iPercentages.add(((price/iTotalPrice)*100).round());
     });
-    print(oPercentages);
-    print(iPercentages);
   }
 
   @override
   void initState() {
-    loadDB(EditorInputtedData.calendarSelectedDay);
+    loadDB(EditorInputtedData.calendarSelectedDay).then((value){
+      if(EditorInputtedData.outOrInBool){
+        categoryListKey.currentState.buildCategoryTiles(
+          categories: oCategories,
+          totalPrices:oTotalPrices,
+          percentages:oPercentages,
+        );
+        expenseGraphKey.currentState.setGraphData(
+          categories: oCategories,
+          totalPrices:oTotalPrices,
+          percentages:oPercentages,
+        );
+      }else{
+        categoryListKey.currentState.buildCategoryTiles(
+          categories: iCategories,
+          totalPrices:iTotalPrices,
+          percentages:iPercentages,
+        );
+        expenseGraphKey.currentState.setGraphData(
+          categories: oCategories,
+          totalPrices:oTotalPrices,
+          percentages:oPercentages,
+        );
+      }
+    });
     super.initState();
   }
 
@@ -96,15 +128,11 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
         SizedBox(
           height: 250.0,
           child: Center(
-            child: ExpenseGraph(),
+            child: ExpenseGraph(key: expenseGraphKey,),
           )
         ),
         Expanded(
-          child: ListView(
-            children: <Widget>[
-
-            ],
-          ),
+          child: CategoryList(loadDB,key: categoryListKey,)
         )
       ],
     );
@@ -117,6 +145,38 @@ class GraphHeader extends StatefulWidget{
 }
 
 class _GraphHeaderState extends State<GraphHeader>{
+  String dateLabel='';
+
+  Future setDateLabel()async{
+    String formatSt;
+    switch(EditorInputtedData.ternNum){
+      case 0:{
+        //１日間のデータ
+        formatSt='yyyy/MM/dd(E)';
+        break;
+      }
+      case 1:{
+        //１月間のデータ
+        formatSt='yyyy/MM';
+        break;}
+      case 2:{
+        //１年間のデータ
+        formatSt='yyyy';
+        break;}
+    }
+    await initializeDateFormatting("ja_JP");
+    var formatter = new DateFormat(formatSt, "ja_JP");
+    setState(() {
+      dateLabel = formatter.format(EditorInputtedData.calendarSelectedDay);
+    });
+  }
+
+
+  @override
+  void initState() {
+    setDateLabel();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +190,7 @@ class _GraphHeaderState extends State<GraphHeader>{
                 }),
             Expanded(
               child: Center(
-                child: Text('aa'),
+                child: Text(dateLabel),
               ),
             ),
             IconButton(
@@ -145,6 +205,7 @@ class _GraphHeaderState extends State<GraphHeader>{
 }
 
 class ExpenseGraph extends StatefulWidget{
+  ExpenseGraph({Key key}) : super(key: key);
   @override
   _ExpenseGraphState createState()=> new _ExpenseGraphState(_ExpenseGraphState._createSampleData());
 }
@@ -153,6 +214,8 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
   _ExpenseGraphState(this.seriesList, {this.animate});
   List<charts.Series> seriesList=[];
   bool animate=true;
+  static List<LinearExpenses> data;
+  List<LinearExpenses> categoryData;
 
   factory _ExpenseGraphState.withSampleData() {
     return new _ExpenseGraphState(
@@ -161,9 +224,57 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
     );
   }
 
+  void setGraphData({List<String> categories, List<int> totalPrices, List<int> percentages,}){
+    categoryData=[];
+    int index=0;
+    percentages.forEach((percentage) {
+      categoryData.add(
+          LinearExpenses(index,percentage)
+      );
+      index++;
+    });
+    setState(() {
+      seriesList=[
+        charts.Series<LinearExpenses, int>(
+          id: 'Sales',
+          domainFn: (LinearExpenses sales, _){return sales.index;},
+          measureFn: (LinearExpenses sales, _){return sales.sales;},
+          data: categoryData,
+          labelAccessorFn:(LinearExpenses row, _)=>categories[_],
+        )
+      ];
+    });
+  }
+
+  static List<charts.Series<LinearExpenses, int>> _createSampleData() {
+    data = [
+      new LinearExpenses(0, 100),
+      new LinearExpenses(1, 75),
+      new LinearExpenses(2, 25),
+      new LinearExpenses(3, 5),
+      new LinearExpenses(5, 100),
+      new LinearExpenses(6, 75),
+      new LinearExpenses(7, 25),
+      new LinearExpenses(8, 5),
+    ];
+
+    return [
+      new charts.Series<LinearExpenses, int>(
+        id: 'Sales',
+        domainFn: (LinearExpenses sales, _){return sales.index;},
+        measureFn: (LinearExpenses sales, _){return sales.sales;},
+        data: data,
+        labelAccessorFn:(LinearExpenses row, _){
+
+          return 'aaaaaaaaaaa';
+        },
+      )
+    ];
+  }
+
   @override
   void initState() {
-    //animate=false;
+    //setGraphData();
     super.initState();
   }
 
@@ -179,41 +290,59 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
         )]),
     );
   }
-
-  static List<charts.Series<LinearExpenses, int>> _createSampleData() {
-    final data = [
-      new LinearExpenses(0, 100),
-      new LinearExpenses(1, 75),
-      new LinearExpenses(2, 25),
-      new LinearExpenses(3, 5),
-      new LinearExpenses(5, 100),
-      new LinearExpenses(6, 75),
-      new LinearExpenses(7, 25),
-      new LinearExpenses(8, 5),
-    ];
-
-    return [
-      new charts.Series<LinearExpenses, int>(
-        id: 'Sales',
-//        colorFn: (_, __){
-//          var colorData=charts.MaterialPalette.blue.makeShades(__+1)[__];
-//          print(colorData.g);
-//          return colorData;
-//        },
-        domainFn: (LinearExpenses sales, _){return sales.year;},
-        measureFn: (LinearExpenses sales, _){return sales.sales;},
-        data: data,
-          labelAccessorFn:(LinearExpenses row, _){
-          return 'aaaaaaaaaaa';
-          },
-      )
-    ];
-  }
 }
 
 class LinearExpenses {
-  final int year;
+  final int index;
   final int sales;
 
-  LinearExpenses(this.year, this.sales);
+  LinearExpenses(this.index, this.sales);
+}
+
+class CategoryList extends StatefulWidget{
+  CategoryList(this.reLoadDB,{Key key}) : super(key: key);
+  final Function reLoadDB;
+  @override
+  _CategoryListState createState()=> new _CategoryListState(reLoadDB);
+}
+
+class _CategoryListState extends State<CategoryList>{
+  _CategoryListState(this.reLoadDB);
+  final Function reLoadDB;
+  List<Widget> categoryTiles=[];
+
+  void buildCategoryTiles({List<String> categories, List<int> totalPrices, List<int> percentages,}){
+    int index=0;
+    List<Widget> listTiles = [];
+    categories.forEach((category) {
+      listTiles.add(ListTile(
+        title: Row(
+          children: <Widget>[
+            Expanded(
+              flex: 1,
+              child: Text(categories[index]),
+            ),
+            Expanded(
+              flex: 1,
+              child: Text(
+                  '合計'+totalPrices[index].toString()+
+                      '円('+percentages[index].toString()+
+                      '%)'),
+            ),
+          ],
+        ),
+      ));
+      index++;
+    });
+    setState(() {
+      categoryTiles=listTiles;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: categoryTiles
+    );
+  }
 }

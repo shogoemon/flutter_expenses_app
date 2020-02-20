@@ -204,6 +204,7 @@ class _CalendarState extends State<ExpenseCalendarPage>
             }),
             onDaySelected: (day, events) {
               EditorInputtedData.calendarSelectedDay=day;
+              EditorInputtedData.graphSelectedDay=day;
               expenseListKey.currentState.buildListTiles(day, events);
             },
             onDayLongPressed: (day, events){

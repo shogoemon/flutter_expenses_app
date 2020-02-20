@@ -6,6 +6,7 @@ class EditorInputtedData{
   static int ternNum=0;
   static DateTime selectedDay=DateTime.now();
   static DateTime calendarSelectedDay=DateTime.now();
+  static DateTime graphSelectedDay=DateTime.now();
   static List<String> categoryList = [
     '未分類',
     '食費',

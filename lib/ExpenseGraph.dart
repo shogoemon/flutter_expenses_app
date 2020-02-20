@@ -89,32 +89,36 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
     });
   }
 
+  void setGraphAndList(){
+    if(EditorInputtedData.outOrInBool){
+      categoryListKey.currentState.buildCategoryTiles(
+        categories: oCategories,
+        totalPrices:oTotalPrices,
+        percentages:oPercentages,
+      );
+      expenseGraphKey.currentState.setGraphData(
+        categories: oCategories,
+        totalPrices:oTotalPrices,
+        percentages:oPercentages,
+      );
+    }else{
+      categoryListKey.currentState.buildCategoryTiles(
+        categories: iCategories,
+        totalPrices:iTotalPrices,
+        percentages:iPercentages,
+      );
+      expenseGraphKey.currentState.setGraphData(
+        categories: iCategories,
+        totalPrices:iTotalPrices,
+        percentages:iPercentages,
+      );
+    }
+  }
+
   @override
   void initState() {
-    loadDB(EditorInputtedData.calendarSelectedDay).then((value){
-      if(EditorInputtedData.outOrInBool){
-        categoryListKey.currentState.buildCategoryTiles(
-          categories: oCategories,
-          totalPrices:oTotalPrices,
-          percentages:oPercentages,
-        );
-        expenseGraphKey.currentState.setGraphData(
-          categories: oCategories,
-          totalPrices:oTotalPrices,
-          percentages:oPercentages,
-        );
-      }else{
-        categoryListKey.currentState.buildCategoryTiles(
-          categories: iCategories,
-          totalPrices:iTotalPrices,
-          percentages:iPercentages,
-        );
-        expenseGraphKey.currentState.setGraphData(
-          categories: oCategories,
-          totalPrices:oTotalPrices,
-          percentages:oPercentages,
-        );
-      }
+    loadDB(EditorInputtedData.graphSelectedDay).then((value){
+      setGraphAndList();
     });
     super.initState();
   }
@@ -123,8 +127,8 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
   Widget build(BuildContext context) {
     return new Column(
       children: <Widget>[
-        GraphHeader(),
-        InOrOutButtonForm(),
+        GraphHeader(setGraphAndList,loadDB),
+        GraphInOrOutButton(setGraphAndList),
         SizedBox(
           height: 250.0,
           child: Center(
@@ -140,11 +144,17 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
 }
 
 class GraphHeader extends StatefulWidget{
+  GraphHeader(this.setGraphAndList,this.reloadDB,{Key key}):super(key:key);
+  final Function setGraphAndList;
+  final Function reloadDB;
   @override
-  _GraphHeaderState createState()=> new _GraphHeaderState();
+  _GraphHeaderState createState()=> new _GraphHeaderState(setGraphAndList,this.reloadDB);
 }
 
 class _GraphHeaderState extends State<GraphHeader>{
+  _GraphHeaderState(this.setGraphAndList,this.reloadDB);
+  Function setGraphAndList;
+  Function reloadDB;
   String dateLabel='';
 
   Future setDateLabel()async{
@@ -167,8 +177,37 @@ class _GraphHeaderState extends State<GraphHeader>{
     await initializeDateFormatting("ja_JP");
     var formatter = new DateFormat(formatSt, "ja_JP");
     setState(() {
-      dateLabel = formatter.format(EditorInputtedData.calendarSelectedDay);
+      dateLabel = formatter.format(EditorInputtedData.graphSelectedDay);
     });
+  }
+
+  void changeDate(bool addDay)async{
+    int durationTern;
+    if(addDay){
+      durationTern=1;
+    }else{
+      durationTern=-1;
+    }
+    switch(EditorInputtedData.ternNum){
+      case 0:{
+        //１日間のデータ
+        EditorInputtedData.graphSelectedDay=
+            EditorInputtedData.graphSelectedDay.add(new Duration(days: durationTern));
+        break;
+      }
+      case 1:{
+        //１月間のデータ
+        DateTime oldDate=EditorInputtedData.graphSelectedDay;
+        EditorInputtedData.graphSelectedDay=
+        new DateTime(oldDate.year,oldDate.month+durationTern,1);
+        break;}
+      case 2:{
+        //１年間のデータ
+        DateTime oldDate=EditorInputtedData.graphSelectedDay;
+        EditorInputtedData.graphSelectedDay=
+        new DateTime(oldDate.year+durationTern,oldDate.month,oldDate.day);
+        break;}
+    }
   }
 
 
@@ -185,8 +224,13 @@ class _GraphHeaderState extends State<GraphHeader>{
           children: <Widget>[
             IconButton(
                 icon: Icon(Icons.keyboard_arrow_left),
-                onPressed: () {
+                onPressed: () async{
                   //日付を変えてデータをリロードして画面の更新
+                  changeDate(false);
+                  await setDateLabel();
+                  reloadDB(EditorInputtedData.graphSelectedDay).then((value){
+                    setGraphAndList();
+                  });
                 }),
             Expanded(
               child: Center(
@@ -195,7 +239,12 @@ class _GraphHeaderState extends State<GraphHeader>{
             ),
             IconButton(
                 icon: Icon(Icons.keyboard_arrow_right),
-                onPressed: () {
+                onPressed: () async{
+                  changeDate(true);
+                  await setDateLabel();
+                  reloadDB(EditorInputtedData.graphSelectedDay).then((value){
+                    setGraphAndList();
+                  });
                   //日付を変えてデータをリロードして画面の更新
                 })
           ],
@@ -225,6 +274,7 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
   }
 
   void setGraphData({List<String> categories, List<int> totalPrices, List<int> percentages,}){
+    bool noDataBool=(categoryData==null)||(categoryData==[]);
     categoryData=[];
     int index=0;
     percentages.forEach((percentage) {
@@ -233,40 +283,43 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
       );
       index++;
     });
-    setState(() {
-      seriesList=[
-        charts.Series<LinearExpenses, int>(
-          id: 'Sales',
-          domainFn: (LinearExpenses sales, _){return sales.index;},
-          measureFn: (LinearExpenses sales, _){return sales.sales;},
-          data: categoryData,
-          labelAccessorFn:(LinearExpenses row, _)=>categories[_],
-        )
-      ];
-    });
+    if(index!=0){
+      animate=true;
+      setState(() {
+        seriesList=[
+          charts.Series<LinearExpenses, int>(
+            id: 'Sales',
+            domainFn: (LinearExpenses sales, _){return sales.index;},
+            measureFn: (LinearExpenses sales, _){return sales.sales;},
+            data: categoryData,
+            labelAccessorFn:(LinearExpenses row, _)=>categories[_],
+          )
+        ];
+      });
+    }else{
+      animate=false;
+      if(!noDataBool){
+        setState(() {
+          seriesList=_ExpenseGraphState._createSampleData();
+        });
+      }
+    }
   }
 
   static List<charts.Series<LinearExpenses, int>> _createSampleData() {
     data = [
       new LinearExpenses(0, 100),
-      new LinearExpenses(1, 75),
-      new LinearExpenses(2, 25),
-      new LinearExpenses(3, 5),
-      new LinearExpenses(5, 100),
-      new LinearExpenses(6, 75),
-      new LinearExpenses(7, 25),
-      new LinearExpenses(8, 5),
     ];
 
     return [
       new charts.Series<LinearExpenses, int>(
         id: 'Sales',
-        domainFn: (LinearExpenses sales, _){return sales.index;},
-        measureFn: (LinearExpenses sales, _){return sales.sales;},
+        domainFn: (LinearExpenses sales, _)=>sales.index,
+        measureFn: (LinearExpenses sales, _)=>sales.sales,
         data: data,
+        colorFn: (_, __)=>charts.MaterialPalette.blue.makeShades(10)[9],
         labelAccessorFn:(LinearExpenses row, _){
-
-          return 'aaaaaaaaaaa';
+          return 'noData';
         },
       )
     ];
@@ -274,7 +327,6 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
 
   @override
   void initState() {
-    //setGraphData();
     super.initState();
   }
 
@@ -344,5 +396,22 @@ class _CategoryListState extends State<CategoryList>{
     return ListView(
       children: categoryTiles
     );
+  }
+}
+
+class GraphInOrOutButton extends InOrOutButtonForm{
+  GraphInOrOutButton(this.setGraphAndList);
+  final Function setGraphAndList;
+  @override
+  _GraphInOrOutButtonState createState() => new _GraphInOrOutButtonState(setGraphAndList);
+}
+
+class _GraphInOrOutButtonState extends InOrOutButtonFormState{
+  _GraphInOrOutButtonState(this.setGraphAndList);
+  final Function setGraphAndList;
+  @override
+  void switchBool(bool whichButton){
+    super.switchBool(whichButton);
+    setGraphAndList();
   }
 }

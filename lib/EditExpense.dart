@@ -180,10 +180,10 @@ class _PriceInputFormState extends State<PriceInputForm>{
 class InOrOutButtonForm extends StatefulWidget {
   InOrOutButtonForm({Key key}) : super(key: key);
   @override
-  _InOrOutButtonFormState createState() => new _InOrOutButtonFormState();
+  InOrOutButtonFormState createState() => new InOrOutButtonFormState();
 }
 
-class _InOrOutButtonFormState extends State<InOrOutButtonForm> {
+class InOrOutButtonFormState extends State<InOrOutButtonForm> {
   Color inButtonColor = Colors.grey;
   Color outButtonColor = Colors.blue;
   Color trueColor = Colors.blue;

@@ -71,6 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=0;
+                    
                     Navigator.pop(context);
                   },
                   child: ListTile(

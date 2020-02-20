@@ -69,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   borderRadius: BorderRadius.all(Radius.circular(25.0))),
               title: Text("表示切り替え"),
               children: <Widget>[
+                Divider(color: Colors.black,),
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=0;
@@ -82,6 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     title: Text("日別"),
                   ),
                 ),
+                Divider(color: Colors.black,),
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=1;
@@ -95,6 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     title: Text("月別"),
                   ),
                 ),
+                Divider(color: Colors.black,),
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=2;

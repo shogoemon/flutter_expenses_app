@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import './EditorState.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:keyboard_actions/keyboard_action.dart';
 import './db/Database.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
+import './SelectCategoryPage.dart';
 
 class EditExpensePage extends StatefulWidget {
   EditExpensePage({this.updateData,this.onTapBottomNavigation});
@@ -20,6 +20,12 @@ class _EditExpenseState extends State<EditExpensePage> {
   Function onTapBottomNavigation;
   String updateData;
   final priceFormKey = new GlobalKey<_PriceInputFormState>();
+  //InOrOutButtonFormState
+  final categorySelectorKey = new GlobalKey<_CategorySelectorFormState>();
+
+  void switchCategoryLabel(){
+    categorySelectorKey.currentState.setCategoryLabel();
+  }
 
   @override
   void initState() {
@@ -32,6 +38,12 @@ class _EditExpenseState extends State<EditExpensePage> {
   }
 
   Future insertData()async{
+    String selectedCategory;
+    if(EditorInputtedData.outOrInBool){
+      selectedCategory=EditorInputtedData.outSelectedCategory;
+    }else{
+      selectedCategory=EditorInputtedData.inSelectedCategory;
+    }
     if(updateData==null){
       //追加
       //oldData[0]
@@ -40,7 +52,7 @@ class _EditExpenseState extends State<EditExpensePage> {
           year: EditorInputtedData.selectedDay.year.toString(),
           month: EditorInputtedData.selectedDay.month.toString(),
           day: EditorInputtedData.selectedDay.day.toString(),
-          category:EditorInputtedData.selectedCategory,
+          category:selectedCategory,
           inOrOut:EditorInputtedData.outOrInBool.toString(),
           price:EditorInputtedData.inputPrice.toString()
       );
@@ -51,7 +63,7 @@ class _EditExpenseState extends State<EditExpensePage> {
           year: EditorInputtedData.selectedDay.year.toString(),
           month: EditorInputtedData.selectedDay.month.toString(),
           day: EditorInputtedData.selectedDay.day.toString(),
-          category:EditorInputtedData.selectedCategory,
+          category:selectedCategory,
           inOrOut:EditorInputtedData.outOrInBool.toString(),
           price:EditorInputtedData.inputPrice.toString()
       );
@@ -64,32 +76,37 @@ class _EditExpenseState extends State<EditExpensePage> {
       children: <Widget>[
         Column(
           children: <Widget>[
-            InOrOutButtonForm(),
+            InOrOutButtonForm(switchCategoryLabel:switchCategoryLabel),
             PriceInputForm(key:priceFormKey),
-            CategorySelectorForm(),
+            CategorySelectorForm(key: categorySelectorKey),
             DataSelectorForm(),
             Container(
               height: MediaQuery.of(context).size.height / 6,
               child: Center(
-                child: RaisedButton(
-                  child: Text(
-                    '保存',
-                    style: TextStyle().copyWith(
-                      fontSize: 30.0,
+                child: Container(
+                  width: MediaQuery.of(context).size.width*2/3,
+                  child: RaisedButton(
+                    color: Colors.green[300],
+                    child: Text(
+                      '保存',
+                      style: TextStyle().copyWith(
+                        fontSize: 30.0,
+                        color: Colors.white
+                      ),
                     ),
+                    onPressed: () {
+                      insertData();
+                      FocusScope.of(context).requestFocus(FocusNode());
+                      EditorInputtedData.inputPrice=0;
+                      priceFormKey.currentState.setPrice();
+                      if(updateData!=null){
+                        Navigator.of(context).pop(true);
+                      }else{
+                        onTapBottomNavigation(0);
+                      }
+                    },
                   ),
-                  onPressed: () {
-                    insertData();
-                    FocusScope.of(context).requestFocus(FocusNode());
-                    EditorInputtedData.inputPrice=0;
-                    priceFormKey.currentState.setPrice();
-                    if(updateData!=null){
-                      Navigator.of(context).pop(true);
-                    }else{
-                      onTapBottomNavigation(0);
-                    }
-                  },
-                ),
+                )
               ),
             )
           ],
@@ -123,6 +140,11 @@ class _PriceInputFormState extends State<PriceInputForm>{
   @override
   void initState() {
     setPrice();
+    txtFocus.addListener(() {
+      if(txtFocus.hasFocus&&moneyTxtCtrl.text=='0'){
+        moneyTxtCtrl.text='';
+      }
+    });
     super.initState();
   }
 
@@ -178,20 +200,24 @@ class _PriceInputFormState extends State<PriceInputForm>{
 }
 
 class InOrOutButtonForm extends StatefulWidget {
-  InOrOutButtonForm({Key key}) : super(key: key);
+  InOrOutButtonForm({Key key,this.switchCategoryLabel}) : super(key: key);
+  final Function switchCategoryLabel;
   @override
-  InOrOutButtonFormState createState() => new InOrOutButtonFormState();
+  InOrOutButtonFormState createState() => new InOrOutButtonFormState(EditorInputtedData.outOrInBool,switchCategoryLabel: switchCategoryLabel);
 }
 
 class InOrOutButtonFormState extends State<InOrOutButtonForm> {
+  InOrOutButtonFormState(this.outOrInBool,{this.switchCategoryLabel});
+  Function switchCategoryLabel;
   Color inButtonColor = Colors.grey;
   Color outButtonColor = Colors.blue;
-  Color trueColor = Colors.blue;
-  Color falseColor = Colors.grey;
+  Color trueColor = Colors.blue[300];
+  Color falseColor = Colors.grey[400];
+  bool outOrInBool;
 
   @override
   void initState() {
-    if (EditorInputtedData.outOrInBool) {
+    if (outOrInBool) {
       setState(() {
         inButtonColor = falseColor;
         outButtonColor = trueColor;
@@ -206,10 +232,10 @@ class InOrOutButtonFormState extends State<InOrOutButtonForm> {
   }
 
   void switchBool(bool whichButton) {
-    //print(EditorInputtedData.outOrInBool);
-    if (EditorInputtedData.outOrInBool != whichButton) {
+    if (outOrInBool != whichButton) {
       EditorInputtedData.outOrInBool = !EditorInputtedData.outOrInBool;
-      if (EditorInputtedData.outOrInBool) {
+      outOrInBool=!outOrInBool;
+      if (outOrInBool) {
         setState(() {
           inButtonColor = falseColor;
           outButtonColor = trueColor;
@@ -221,6 +247,7 @@ class InOrOutButtonFormState extends State<InOrOutButtonForm> {
         });
       }
     }
+    switchCategoryLabel();
   }
 
   @override
@@ -266,42 +293,24 @@ class CategorySelectorForm extends StatefulWidget {
 }
 
 class _CategorySelectorFormState extends State<CategorySelectorForm> {
-  SharedPreferences prefs;
-
-  List<Widget> categoryListTiles = [];
   String categoryLabel = '';
-  int categoryIndex;
-
-  Widget createListTile(String label) {
-    return ListTile(
-      title: Text(label),
-    );
-  }
 
   @override
   void initState() {
-    EditorInputtedData.loadCategoryList(false).then((categoryList){
-      categoryList.forEach((element) {
-        categoryListTiles.add(createListTile(element));
-      });
-      EditorInputtedData.selectedCategory ??= EditorInputtedData.categoryList[0];
-      categoryLabel=EditorInputtedData.selectedCategory;
-      categoryIndex=EditorInputtedData.categoryList.indexOf(categoryLabel);
-      if(categoryIndex==-1){
-        EditorInputtedData.categoryList.add(EditorInputtedData.selectedCategory);
-        categoryListTiles.add(createListTile(EditorInputtedData.selectedCategory));
-        categoryIndex=EditorInputtedData.categoryList.length;
-      }
-      setCategoryLabel(categoryLabel);
-    });
+    setCategoryLabel();
     super.initState();
   }
 
-  void setCategoryLabel(String label) {
+  void setCategoryLabel() {
+    String label='';
+    if(EditorInputtedData.outOrInBool){
+      label=EditorInputtedData.outSelectedCategory;
+    }else{
+      label=EditorInputtedData.inSelectedCategory;
+    }
     setState(() {
       categoryLabel = label;
     });
-    EditorInputtedData.selectedCategory=label;
   }
 
   @override
@@ -310,27 +319,11 @@ class _CategorySelectorFormState extends State<CategorySelectorForm> {
       title: Text('分類:' + categoryLabel),
       trailing: Icon(Icons.expand_more),
       onTap: () {
-        showModalBottomSheet(
-            context: context,
-            builder: (BuildContext context) {
-              return Container(
-                height: MediaQuery.of(context).size.height / 3,
-                child: CupertinoPicker(
-                  scrollController: FixedExtentScrollController(
-                      initialItem: categoryIndex),
-                  useMagnifier: true,
-                  itemExtent: 50.0,
-                  onSelectedItemChanged: (value) {
-                    setState(() {
-                      setCategoryLabel(EditorInputtedData.categoryList[value]);
-                      categoryIndex = value;
-                    });
-                  },
-                  children: categoryListTiles,
-                ),
-              );
-            });
-        //changeSubNumLabel('');
+        Navigator.of(context)
+            .push(MaterialPageRoute(
+            builder: (context) => SelectCategoryPage())).then((value){
+          setCategoryLabel();
+        });
       },
     );
   }

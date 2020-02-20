@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import './db/Database.dart';
 import './ReEditExpense.dart';
 import './EditorState.dart';
+import "package:intl/intl.dart";
+import 'package:intl/date_symbol_data_local.dart';
 
 class ExpenseCalendarPage extends StatefulWidget {
   ExpenseCalendarPage(this.onTapBottomNavigation);
@@ -28,7 +30,7 @@ class _CalendarState extends State<ExpenseCalendarPage>
     calendarCtrl = CalendarController();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 300),
     );
     _animationController.forward();
     loadDB(EditorInputtedData.calendarSelectedDay).then((selectedDay) {
@@ -40,6 +42,7 @@ class _CalendarState extends State<ExpenseCalendarPage>
   }
 
   Future loadDB(DateTime selectedDay) async {
+    await initializeDateFormatting("ja_JP");
     int sameDayNum = 0;
     await ExpensesTableDB.connectDB();
 //DateTime.now()
@@ -47,10 +50,10 @@ class _CalendarState extends State<ExpenseCalendarPage>
     monthExpenseDB = await ExpensesTableDB.getDataFromCalendar(
         year:selectedDay.year.toString(), month:selectedDay.month.toString());
     monthExpenseDB.forEach((expenses) {
-      if (sameDayNum == expenses['day']) {
+      if (sameDayNum == int.parse(expenses['day'])) {
         //print(expenses['createTime']);
         expenseSetMap[
-                DateTime(expenses['year'], expenses['month'], expenses['day'])]
+                DateTime(int.parse(expenses['year']), int.parse(expenses['month']), int.parse(expenses['day']))]
             .add(expenses['createTime'] +
                 '.:.' +
                 expenses['category'] +
@@ -60,7 +63,7 @@ class _CalendarState extends State<ExpenseCalendarPage>
                 expenses['price']);
       } else {
         expenseSetMap.addAll({
-          DateTime(expenses['year'], expenses['month'], expenses['day']): [
+          DateTime(int.parse(expenses['year']), int.parse(expenses['month']), int.parse(expenses['day'])): [
             expenses['createTime'] +
                 '.:.' +
                 expenses['category'] +
@@ -71,7 +74,7 @@ class _CalendarState extends State<ExpenseCalendarPage>
           ]
         });
       }
-      sameDayNum = expenses['day'];
+      sameDayNum = int.parse(expenses['day']);
     });
     setState(() {
       expenseSetMap = expenseSetMap;
@@ -90,100 +93,80 @@ class _CalendarState extends State<ExpenseCalendarPage>
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: <Widget>[
-          TableCalendar(
-            initialSelectedDay: EditorInputtedData.calendarSelectedDay,
-            onVisibleDaysChanged: (firstDay, lastDay, format) {
-              if (firstDay.day > 20) {
-                loadDB(lastDay);
-              } else {
-                loadDB(firstDay);
-              }
-            },
-            headerStyle:
-            HeaderStyle(centerHeaderTitle: true, formatButtonVisible: false),
-            calendarController: calendarCtrl,
-            //locale: 'ja_JP',
-            events: expenseSetMap,
-            builders: CalendarBuilders(dayBuilder: (context, date, _) {
-              return Container(
-                decoration: BoxDecoration(
-                  border: Border.all(width: 0.0),
-                  borderRadius: BorderRadius.circular(0.0),
+    return Scrollbar(
+      child: SingleChildScrollView(
+          child: Column(
+            children: <Widget>[
+              TableCalendar(
+                initialSelectedDay: EditorInputtedData.calendarSelectedDay,
+                onVisibleDaysChanged: (firstDay, lastDay, format) {
+                  if (firstDay.day > 20) {
+                    loadDB(lastDay);
+                  } else {
+                    loadDB(firstDay);
+                  }
+                },
+                calendarStyle: CalendarStyle(
+                  todayColor: Colors.blue,
+                  outsideDaysVisible: false,
                 ),
-                padding: const EdgeInsets.all(2.5),
-                alignment: Alignment(0, -1.0),
-                child: Column(
-                  children: <Widget>[
-                    Text('${date.day}',
-                        style: TextStyle().copyWith(fontSize: 14.0)),
-                  ],
+                headerStyle:
+                HeaderStyle(
+                    centerHeaderTitle: true,
+                    formatButtonVisible: false,
                 ),
-              );
-            }, todayDayBuilder: (context, date, _) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.blue[200],
-                  border: Border.all(width: 0.0),
-                  borderRadius: BorderRadius.circular(0.0),
-                ),
-                padding: const EdgeInsets.all(2.5),
-                alignment: Alignment(0, -1.0),
-                child: Column(
-                  children: <Widget>[
-                    Text('${date.day}',
-                        style: TextStyle().copyWith(fontSize: 14.0)),
-//                  Expanded(
-//                    child: Text('合計 100000000円',
-//                        style: TextStyle().copyWith(fontSize: 12.0)),
-//                  )
-                  ],
-                ),
-              );
-            }, selectedDayBuilder: (context, date, _) {
-              Color selectedColor = Colors.red;
-              return Container(
-                decoration: BoxDecoration(
-                  color: selectedColor,
-                  border: Border.all(width: 0.0),
-                  borderRadius: BorderRadius.circular(0.0),
-                ),
-                padding: const EdgeInsets.all(2.5),
-                alignment: Alignment(0, -1.0),
-                child: Column(
-                  children: <Widget>[
-                    Text('${date.day}',
-                        style: TextStyle().copyWith(fontSize: 14.0)),
-                  ],
-                ),
-              );
-            }, markersBuilder: (context, date, expenseSet, holidays) {
-              final children = <Widget>[];
-              int oneDayIncome = 0;
-              int oneDayOutgo = 0;
-              String dayTotalLabel = '';
-              expenseSet.forEach((element) {
-                List<String> anExpense = element.split('.:.');
-                if (anExpense[2] == 'true') {
-                  oneDayOutgo += int.parse(anExpense[3]);
-                } else {
-                  oneDayIncome += int.parse(anExpense[3]);
-                }
-              });
-              if (oneDayIncome != 0) {
-                dayTotalLabel += '+' + oneDayIncome.toString() + '\n';
-              }
-              if (oneDayOutgo != 0) {
-                dayTotalLabel += '-' + oneDayOutgo.toString();
-              }
-              if (expenseSet.isNotEmpty) {
-                children.add(Positioned(
+                formatAnimation: FormatAnimation.slide,
+                calendarController: calendarCtrl,
+                locale: 'ja_JP',
+                events: expenseSetMap,
+                builders: CalendarBuilders(
+                    dayBuilder: (context, date, _) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(width: 0.0),
+                      borderRadius: BorderRadius.circular(7.0),
+                    ),
+                    padding: const EdgeInsets.all(2.5),
+                    alignment: Alignment(0, -1.0),
+                    child: Column(
+                      children: <Widget>[
+                        Text('${date.day}',
+                            style: TextStyle().copyWith(fontSize: 14.0)),
+                      ],
+                    ),
+                  );
+                },
+                    todayDayBuilder: (context, date, _) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      //color: Colors.blue[200],
+                      border: Border.all(width: 0.0),
+                      borderRadius: BorderRadius.circular(7.0),
+                    ),
+                    padding: const EdgeInsets.all(2.5),
+                    alignment: Alignment(0, -1.0),
+                    child: Column(
+                      children: <Widget>[
+                        Container(
+                          child: Text(date.day.toString(),
+                              style: TextStyle().copyWith(fontSize: 14.0)
+                          ),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(7.0),
+                              color: Colors.blue[100]
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                }, selectedDayBuilder: (context, date, _) {
+                  return FadeTransition(
+                    opacity: Tween(begin: 0.0, end: 1.0).animate(_animationController),
                     child: Container(
                       decoration: BoxDecoration(
+                        color: Colors.green[200],
                         border: Border.all(width: 0.0),
-                        borderRadius: BorderRadius.circular(0.0),
+                        borderRadius: BorderRadius.circular(7.0),
                       ),
                       padding: const EdgeInsets.all(2.5),
                       alignment: Alignment(0, -1.0),
@@ -191,29 +174,68 @@ class _CalendarState extends State<ExpenseCalendarPage>
                         children: <Widget>[
                           Text('${date.day}',
                               style: TextStyle().copyWith(fontSize: 14.0)),
-                          Expanded(
-                            child: Text(dayTotalLabel,
-                                style: TextStyle().copyWith(fontSize: 12.0)),
-                          )
                         ],
                       ),
-                    )));
-              }
+                    ),
+                  );
+                }, markersBuilder: (context, date, expenseSet, holidays) {
+                  final children = <Widget>[];
+                  int oneDayIncome = 0;
+                  int oneDayOutgo = 0;
+                  String dayTotalLabel = '';
+                  expenseSet.forEach((element) {
+                    List<String> anExpense = element.split('.:.');
+                    if (anExpense[2] == 'true') {
+                      oneDayOutgo += int.parse(anExpense[3]);
+                    } else {
+                      oneDayIncome += int.parse(anExpense[3]);
+                    }
+                  });
+                  if (oneDayIncome != 0 || expenseSet.toString().indexOf('.:.0]')!=-1) {
+                    dayTotalLabel += '+' + oneDayIncome.toString() + '\n';
+                  }
+                  if (oneDayOutgo != 0 || expenseSet.toString().indexOf('.:.0]')!=-1) {
+                    dayTotalLabel += '-' + oneDayOutgo.toString();
+                  }
+                  if (expenseSet.isNotEmpty) {
+                    children.add(Positioned(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(width: 0.0),
+                            borderRadius: BorderRadius.circular(7.0),
+                          ),
+                          padding: const EdgeInsets.all(2.5),
+                          alignment: Alignment(0, -1.0),
+                          child: Column(
+                            children: <Widget>[
+                              Text('${date.day}',
+                                  style: TextStyle().copyWith(fontSize: 14.0)),
+                              Expanded(
+                                child: Text(dayTotalLabel,
+                                    style: TextStyle().copyWith(fontSize: 12.0)),
+                              )
+                            ],
+                          ),
+                        )));
+                  }
 
-              return children;
-            }),
-            onDaySelected: (day, events) {
-              EditorInputtedData.calendarSelectedDay=day;
-              EditorInputtedData.graphSelectedDay=day;
-              expenseListKey.currentState.buildListTiles(day, events);
-            },
-            onDayLongPressed: (day, events){
-              EditorInputtedData.selectedDay=day;
-              onTapBottomNavigation(1);
-            },
-          ),
-          ExpenseList(loadDB, expenseSetMapGetter, key: expenseListKey),
-        ],
+                  return children;
+                }),
+                onDaySelected: (day, events) {
+                  EditorInputtedData.calendarSelectedDay=day;
+                  EditorInputtedData.graphSelectedDay=day;
+                  EditorInputtedData.selectedDay=day;
+                  //_animationController.forward(from: 0.4);
+                  expenseListKey.currentState.buildListTiles(day, events);
+                },
+                onDayLongPressed: (day, events){
+                  EditorInputtedData.selectedDay=day;
+                  onTapBottomNavigation(1);
+                },
+              ),
+              ExpenseList(loadDB, expenseSetMapGetter, key: expenseListKey),
+            ],
+          )
       )
     );
   }
@@ -266,7 +288,11 @@ class _ExpenseListState extends State<ExpenseList> {
         onTap: () {
           EditorInputtedData.outOrInBool = (tileLabels[2] == 'true');
           EditorInputtedData.inputPrice = int.parse(tileLabels[3]);
-          EditorInputtedData.selectedCategory = tileLabels[1];
+          if(EditorInputtedData.outOrInBool){
+            EditorInputtedData.outSelectedCategory = tileLabels[1];
+          }else{
+            EditorInputtedData.inSelectedCategory = tileLabels[1];
+          }
           EditorInputtedData.selectedDay = selectedDay;
           Navigator.of(context)
               .push(MaterialPageRoute(
@@ -285,7 +311,15 @@ class _ExpenseListState extends State<ExpenseList> {
         },
       ));
     });
+    var formatter = new DateFormat('yyyy/MM/dd(E)', "ja_JP");
     listTiles = <Widget>[
+      Container(
+        width: MediaQuery.of(context).size.width,
+        child: Center(
+          child: Text(formatter.format(selectedDay)),
+        ),
+        color: Colors.grey[300],
+      ),
           ListTile(
             title: Row(
               children: <Widget>[
@@ -300,6 +334,7 @@ class _ExpenseListState extends State<ExpenseList> {
               ],
             ),
           ),
+      Divider(color: Colors.black,)
         ] +
         listTiles;
     setState(() {

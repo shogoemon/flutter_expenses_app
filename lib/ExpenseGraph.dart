@@ -84,15 +84,23 @@ class ExpenseGraphPageState extends State<ExpenseGraphPage> {
       }
     });
     oTotalPrices.forEach((price) {
-      oPercentages.add(((price/oTotalPrice)*100).round());
+      if(price==0){
+        oPercentages.add(0);
+      }else{
+        oPercentages.add(((price/oTotalPrice)*100).round());
+      }
     });
     iTotalPrices.forEach((price) {
-      iPercentages.add(((price/iTotalPrice)*100).round());
+      if(price==0){
+        iPercentages.add(0);
+      }else{
+        iPercentages.add(((price/iTotalPrice)*100).round());
+      }
     });
   }
 
   void setGraphAndList(){
-    if(EditorInputtedData.outOrInBool){
+    if(EditorInputtedData.graphOutOrInBool){
       categoryListKey.currentState.buildCategoryTiles(
         categories: oCategories,
         totalPrices:oTotalPrices,
@@ -135,14 +143,18 @@ class ExpenseGraphPageState extends State<ExpenseGraphPage> {
       children: <Widget>[
         GraphHeader(setGraphAndList,loadDB,key: graphHeaderKey),
         GraphInOrOutButton(setGraphAndList),
-        SizedBox(
-          height: 250.0,
-          child: Center(
-            child: ExpenseGraph(key: expenseGraphKey,),
-          )
-        ),
         Expanded(
-          child: CategoryList(loadDB,key: categoryListKey,)
+          child: ListView(
+            children: <Widget>[
+              SizedBox(
+                  height: 250.0,
+                  child: Center(
+                    child: ExpenseGraph(key: expenseGraphKey,),
+                  )
+              ),
+              CategoryList(loadDB,key: categoryListKey,)
+            ],
+          ),
         )
       ],
     );
@@ -283,13 +295,17 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
     bool noDataBool=(categoryData==null)||(categoryData==[]);
     categoryData=[];
     int index=0;
+    bool allZero;
     percentages.forEach((percentage) {
+      if(percentage!=0){
+        allZero??=false;
+      }
       categoryData.add(
           LinearExpenses(index,percentage)
       );
       index++;
     });
-    if(index!=0){
+    if(index!=0&&allZero!=null){
       animate=true;
       setState(() {
         seriesList=[
@@ -371,8 +387,10 @@ class _CategoryListState extends State<CategoryList>{
 
   void buildCategoryTiles({List<String> categories, List<int> totalPrices, List<int> percentages,}){
     int index=0;
+    int allTotal=0;
     List<Widget> listTiles = [];
     categories.forEach((category) {
+      allTotal+=totalPrices[index];
       listTiles.add(ListTile(
         title: Row(
           children: <Widget>[
@@ -383,7 +401,7 @@ class _CategoryListState extends State<CategoryList>{
             Expanded(
               flex: 1,
               child: Text(
-                  '合計'+totalPrices[index].toString()+
+                  totalPrices[index].toString()+
                       '円('+percentages[index].toString()+
                       '%)'),
             ),
@@ -392,6 +410,25 @@ class _CategoryListState extends State<CategoryList>{
       ));
       index++;
     });
+    if(index!=0){
+      listTiles=<Widget>[
+        ListTile(
+          title: Row(
+            children: <Widget>[
+              Expanded(
+                flex: 1,
+                child: Text('合計'),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(allTotal.toString()+ '円'),
+              ),
+            ],
+          ),
+        ),
+        Divider(color: Colors.black,)
+      ]+listTiles;
+    }
     setState(() {
       categoryTiles=listTiles;
     });
@@ -399,7 +436,7 @@ class _CategoryListState extends State<CategoryList>{
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return Column(
       children: categoryTiles
     );
   }
@@ -409,15 +446,29 @@ class GraphInOrOutButton extends InOrOutButtonForm{
   GraphInOrOutButton(this.setGraphAndList);
   final Function setGraphAndList;
   @override
-  _GraphInOrOutButtonState createState() => new _GraphInOrOutButtonState(setGraphAndList);
+  _GraphInOrOutButtonState createState() => new _GraphInOrOutButtonState(setGraphAndList,EditorInputtedData.graphOutOrInBool);
 }
 
 class _GraphInOrOutButtonState extends InOrOutButtonFormState{
-  _GraphInOrOutButtonState(this.setGraphAndList);
+  _GraphInOrOutButtonState(this.setGraphAndList,bool outOrInBool):super(outOrInBool);
   final Function setGraphAndList;
   @override
   void switchBool(bool whichButton){
-    super.switchBool(whichButton);
+    if (outOrInBool != whichButton) {
+      EditorInputtedData.graphOutOrInBool = !EditorInputtedData.graphOutOrInBool;
+      outOrInBool=!outOrInBool;
+      if (outOrInBool) {
+        setState(() {
+          inButtonColor = falseColor;
+          outButtonColor = trueColor;
+        });
+      } else {
+        setState(() {
+          inButtonColor = trueColor;
+          outButtonColor = falseColor;
+        });
+      }
+    }
     setGraphAndList();
   }
 }

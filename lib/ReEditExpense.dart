@@ -33,7 +33,8 @@ class _ReEditExpensePageState extends State<ReEditExpensePage>{
                 Navigator.of(context).pop(true);
                 EditorInputtedData.outOrInBool=true;
                 EditorInputtedData.inputPrice=0;
-                EditorInputtedData.selectedCategory=null;
+                EditorInputtedData.inSelectedCategory='給与';
+                EditorInputtedData.outSelectedCategory='未分類';
                 EditorInputtedData.selectedDay=DateTime.now();
               }
           ),
@@ -44,7 +45,8 @@ class _ReEditExpensePageState extends State<ReEditExpensePage>{
               Navigator.of(context).pop(false);
               EditorInputtedData.outOrInBool=true;
               EditorInputtedData.inputPrice=0;
-              EditorInputtedData.selectedCategory=null;
+              EditorInputtedData.inSelectedCategory='給与';
+              EditorInputtedData.outSelectedCategory='未分類';
               EditorInputtedData.selectedDay=DateTime.now();
             }
             ),

@@ -7,13 +7,15 @@ import "package:intl/intl.dart";
 import 'package:intl/date_symbol_data_local.dart';
 
 class ExpenseGraphPage extends StatefulWidget {
+  ExpenseGraphPage({Key key}):super(key:key);
   @override
-  _ExpenseGraphPageState createState() => new _ExpenseGraphPageState();
+  ExpenseGraphPageState createState() => new ExpenseGraphPageState();
 }
 
-class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
+class ExpenseGraphPageState extends State<ExpenseGraphPage> {
   final categoryListKey = new GlobalKey<_CategoryListState>();
   final expenseGraphKey = new GlobalKey<_ExpenseGraphState>();
+  final graphHeaderKey = new GlobalKey<_GraphHeaderState>();
   List<Map<String, dynamic>> loadedExpenseList;
   List<String> oCategories=[];
   List<int> oTotalPrices=[];
@@ -115,6 +117,10 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
     }
   }
 
+  void setHeaderLabel(){
+    graphHeaderKey.currentState.setDateLabel();
+  }
+
   @override
   void initState() {
     loadDB(EditorInputtedData.graphSelectedDay).then((value){
@@ -127,7 +133,7 @@ class _ExpenseGraphPageState extends State<ExpenseGraphPage> {
   Widget build(BuildContext context) {
     return new Column(
       children: <Widget>[
-        GraphHeader(setGraphAndList,loadDB),
+        GraphHeader(setGraphAndList,loadDB,key: graphHeaderKey),
         GraphInOrOutButton(setGraphAndList),
         SizedBox(
           height: 250.0,

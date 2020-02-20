@@ -26,6 +26,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final expenseGraphKey = new GlobalKey<ExpenseGraphPageState>();
   PageController pageCtrl;
   int currentPageNum = 0;
   String appBarLabel = '';
@@ -71,7 +72,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=0;
-                    
+                    expenseGraphKey.currentState.loadDB(EditorInputtedData.graphSelectedDay).then((value){
+                      expenseGraphKey.currentState.setGraphAndList();
+                      expenseGraphKey.currentState.setHeaderLabel();
+                    });
                     Navigator.pop(context);
                   },
                   child: ListTile(
@@ -81,6 +85,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=1;
+                    expenseGraphKey.currentState.loadDB(EditorInputtedData.graphSelectedDay).then((value){
+                      expenseGraphKey.currentState.setGraphAndList();
+                      expenseGraphKey.currentState.setHeaderLabel();
+                    });
                     Navigator.pop(context);
                   },
                   child: ListTile(
@@ -90,6 +98,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=2;
+                    expenseGraphKey.currentState.loadDB(EditorInputtedData.graphSelectedDay).then((value){
+                      expenseGraphKey.currentState.setGraphAndList();
+                      expenseGraphKey.currentState.setHeaderLabel();
+                    });
                     Navigator.pop(context);
                   },
                   child: ListTile(
@@ -114,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (isGraph) {
       setState(() {
         widgetPages = [
-          ExpenseGraphPage(),
+          ExpenseGraphPage(key: expenseGraphKey,),
           EditExpensePage(onTapBottomNavigation: onTapBottomNavigation)
         ];
       });

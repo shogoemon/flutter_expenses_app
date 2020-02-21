@@ -31,49 +31,49 @@ class _SelectCategoryPageState extends State<SelectCategoryPage> {
   }
 
   void buildCategoryTiles() {
-    if(loadedList==null){
-      loadedList=[];
+    if (loadedList == null) {
+      loadedList = [];
     }
     List<Widget> _categoryTiles = [];
     if (EditorInputtedData.outOrInBool) {
       EditorInputtedData.outCategoryList.forEach((label) {
-        _categoryTiles.add(
-            ListTile(
-              title: Text(label),
-              onTap: () {
-                if (EditorInputtedData.outOrInBool) {
-                  EditorInputtedData.outSelectedCategory = label;
-                } else {
-                  EditorInputtedData.inSelectedCategory = label;
-                }
-                Navigator.of(context).pop();
-              },
-            )
-        );
-        if(label=='その他'){
-          _categoryTiles.add(Divider(color: Colors.black,));
-        }else{
+        _categoryTiles.add(ListTile(
+          title: Text(label),
+          onTap: () {
+            if (EditorInputtedData.outOrInBool) {
+              EditorInputtedData.outSelectedCategory = label;
+            } else {
+              EditorInputtedData.inSelectedCategory = label;
+            }
+            Navigator.of(context).pop();
+          },
+        ));
+        if (label == 'その他') {
+          _categoryTiles.add(Divider(
+            color: Colors.black,
+          ));
+        } else {
           _categoryTiles.add(Divider());
         }
       });
     } else {
       EditorInputtedData.inCategoryList.forEach((label) {
-        _categoryTiles.add(
-            ListTile(
-              title: Text(label),
-              onTap: () {
-                if (EditorInputtedData.outOrInBool) {
-                  EditorInputtedData.outSelectedCategory = label;
-                } else {
-                  EditorInputtedData.inSelectedCategory = label;
-                }
-                Navigator.of(context).pop();
-              },
-            )
-        );
-        if(label=='その他'){
-          _categoryTiles.add(Divider(color: Colors.black,));
-        }else{
+        _categoryTiles.add(ListTile(
+          title: Text(label),
+          onTap: () {
+            if (EditorInputtedData.outOrInBool) {
+              EditorInputtedData.outSelectedCategory = label;
+            } else {
+              EditorInputtedData.inSelectedCategory = label;
+            }
+            Navigator.of(context).pop();
+          },
+        ));
+        if (label == 'その他') {
+          _categoryTiles.add(Divider(
+            color: Colors.black,
+          ));
+        } else {
           _categoryTiles.add(Divider());
         }
       });
@@ -84,24 +84,25 @@ class _SelectCategoryPageState extends State<SelectCategoryPage> {
           direction: DismissDirection.endToStart,
           background: Container(
               color: Colors.red,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: <Widget>[
-                Container(
-                  child: Text('削除する'),
-                ),
-                Icon(Icons.delete),
-              ],
-            )
-          ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  Container(
+                    child: Text('削除する'),
+                  ),
+                  Icon(Icons.delete),
+                ],
+              )),
           onDismissed: (direction) {
             loadedList.removeAt(loadedList.indexOf(label));
-            if(EditorInputtedData.outOrInBool){
+            if (EditorInputtedData.outOrInBool) {
               prefs.setStringList('outCategoryList', loadedList);
-              EditorInputtedData.outSelectedCategory=EditorInputtedData.outCategoryList[0];
-            }else{
+              EditorInputtedData.outSelectedCategory =
+                  EditorInputtedData.outCategoryList[0];
+            } else {
               prefs.setStringList('inCategoryList', loadedList);
-              EditorInputtedData.inSelectedCategory=EditorInputtedData.inCategoryList[0];
+              EditorInputtedData.inSelectedCategory =
+                  EditorInputtedData.inCategoryList[0];
             }
             print(label);
           },
@@ -186,50 +187,79 @@ class _AddCategoryFormState extends State<AddCategoryForm> {
   Widget build(BuildContext context) {
     return Column(
       children: <Widget>[
-        AlertDialog(
-            title: Text("カテゴリーを追加する"),
-            content: Container(
-                child: Column(
+        SimpleDialog(
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(25.0))),
+          title: Text("カテゴリーを追加する"),
+          children: <Widget>[
+            Center(
+              child: Container(
+                  width: MediaQuery.of(context).size.width * 3 / 4,
+                  child: Column(
+                    children: <Widget>[
+                      TextField(
+                        autofocus: true,
+                        onChanged: (value) {
+                          if (value == ''||RegExp('\^ |\^　').hasMatch(value)) {
+                            setState(() {
+                              cautionSt = '文字を入力して下さい';
+                              onPressedFunc = null;
+                            });
+                          } else {
+                            if (loadedList.indexOf(value) != -1 ||
+                                EditorInputtedData.inCategoryList
+                                        .indexOf(value) !=
+                                    -1 ||
+                                EditorInputtedData.outCategoryList
+                                        .indexOf(value) !=
+                                    -1) {
+                              setState(() {
+                                cautionSt = 'すでに登録されています。';
+                                onPressedFunc = null;
+                              });
+                            } else {
+                              setState(() {
+                                cautionSt = '';
+                                onPressedFunc = addLabelFunction;
+                              });
+                            }
+                          }
+                        },
+                        controller: txtCtrl,
+                      ),
+                      Container(
+                        child: Text(cautionSt),
+                      )
+                    ],
+                  )),
+            ),
+            Divider(),
+            Row(
               children: <Widget>[
-                TextField(
-                  onChanged: (value) {
-                    if (value == '') {
-                      setState(() {
-                        cautionSt = '文字を入力して下さい';
-                        onPressedFunc = null;
-                      });
-                    } else {
-                      if (loadedList.indexOf(value) != -1 ||
-                          EditorInputtedData.inCategoryList.indexOf(value) !=
-                              -1 ||
-                          EditorInputtedData.outCategoryList.indexOf(value) !=
-                              -1) {
-                        setState(() {
-                          cautionSt = 'すでに登録されています。';
-                          onPressedFunc = null;
-                        });
-                      } else {
-                        setState(() {
-                          cautionSt='';
-                          onPressedFunc = addLabelFunction;
-                        });
-                      }
-                    }
-                  },
-                  controller: txtCtrl,
-                ),
-                Container(
-                  child: Text(cautionSt),
-                )
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      decoration: BoxDecoration(
+                          border: Border(
+                              right: BorderSide(color: Colors.grey[200]))),
+                      child: FlatButton(
+                        child: Text("Cancel"),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    )),
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      decoration: BoxDecoration(
+                          border: Border(
+                              left: BorderSide(color: Colors.grey[200]))),
+                      child: FlatButton(
+                          child: Text("OK"), onPressed: onPressedFunc),
+                    ))
               ],
-            )),
-            actions: [
-              FlatButton(
-                child: Text("Cancel"),
-                onPressed: () => Navigator.pop(context),
-              ),
-              FlatButton(child: Text("OK"), onPressed: onPressedFunc)
-            ]),
+            )
+          ],
+        ),
       ],
     );
   }

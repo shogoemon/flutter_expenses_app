@@ -360,7 +360,7 @@ class _ExpenseGraphState extends State<ExpenseGraph>{
         defaultRenderer: new charts.ArcRendererConfig(arcWidth: 50,
         arcRendererDecorators: [new charts.ArcLabelDecorator(
           labelPosition: charts.ArcLabelPosition.outside,
-          outsideLabelStyleSpec: new charts.TextStyleSpec(fontSize: 20),
+          outsideLabelStyleSpec: new charts.TextStyleSpec(fontSize: 18),
         )]),
     );
   }

@@ -33,7 +33,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget leadingIcon;
   List<Widget> widgetPages = [];
   List<Widget> appbarIcons = [];
-  Widget appbarIconData = Icon(Icons.swap_vertical_circle);
+  Widget appbarIconData = Icon(Icons.data_usage);
   bool appbarIconBool = true;
 
   @override
@@ -148,7 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
       appbarIconData = Icon(Icons.calendar_today);
       leadingIcon=buildLeadingIcon();
     } else {
-      appbarIconData = Icon(Icons.swap_vertical_circle);
+      appbarIconData = Icon(Icons.data_usage);
       leadingIcon=null;
     }
     setState(() {

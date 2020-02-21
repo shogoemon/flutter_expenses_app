@@ -141,8 +141,8 @@ class _PriceInputFormState extends State<PriceInputForm>{
   void initState() {
     setPrice();
     txtFocus.addListener(() {
-      if(txtFocus.hasFocus&&moneyTxtCtrl.text=='0'){
-        moneyTxtCtrl.text='';
+      if(!txtFocus.hasFocus){
+        EditorInputtedData.inputPrice=int.parse(moneyTxtCtrl.text);
       }
     });
     super.initState();
@@ -166,8 +166,7 @@ class _PriceInputFormState extends State<PriceInputForm>{
             child: KeyboardActions(
                 config: _buildConfig(context),
                 child: TextField(
-
-                  //cursorColor: Colors.blue,
+                  showCursor: false,
                   //backgroundCursorColor: Colors.black,
                   keyboardType: TextInputType.numberWithOptions(),
                   style: TextStyle().copyWith(
@@ -176,6 +175,15 @@ class _PriceInputFormState extends State<PriceInputForm>{
                   controller: moneyTxtCtrl,
                   focusNode: txtFocus,
                   onChanged: (value) {
+                    if(RegExp('^00').hasMatch(value)){
+                      moneyTxtCtrl.text='0';
+                    }
+                    if(RegExp('^0[0-9]').hasMatch(value)){
+                      moneyTxtCtrl.text=RegExp('[^0]').firstMatch(value).group(0);
+                    }
+                    if(value==''){
+                      moneyTxtCtrl.text='0';
+                    }
                     //txtSelectionCtrl.handlePaste();
                     EditorInputtedData.inputPrice=int.parse(value);
                   },
@@ -316,7 +324,19 @@ class _CategorySelectorFormState extends State<CategorySelectorForm> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text('分類:' + categoryLabel),
+      title: Row(
+        children: <Widget>[
+          Container(
+            child: Text('分類:'),
+          ),
+          Expanded(
+            child:Center(
+              child: Text(categoryLabel),
+            ),
+          )
+
+        ],
+      ),
       trailing: Icon(Icons.expand_more),
       onTap: () {
         Navigator.of(context)
@@ -356,7 +376,19 @@ class _DataSelectorFormState extends State<DataSelectorForm> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(selectDayLabel),
+      title: Row(
+        children: <Widget>[
+          Container(
+            child: Text('日付:'),
+          ),
+          Expanded(
+            child:Center(
+              child: Text(selectDayLabel)
+            ),
+          )
+
+        ],
+      ),
       trailing: Icon(Icons.expand_more),
       onTap: () {
         DatePicker.showDatePicker(

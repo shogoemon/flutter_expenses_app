@@ -7,6 +7,7 @@ environment:
   sdk: ">=2.1.0 <3.0.0"
 
 dependencies:
+  virtual_keyboard: ^0.1.4
   charts_flutter: ^0.8.1
   infinity_page_view: ^1.0.0
   month_picker_strip: ^0.0.3

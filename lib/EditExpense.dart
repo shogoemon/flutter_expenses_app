@@ -6,29 +6,37 @@ import 'package:keyboard_actions/keyboard_action.dart';
 import './db/Database.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import './SelectCategoryPage.dart';
+import 'dart:io';
 
 class EditExpensePage extends StatefulWidget {
-  EditExpensePage({this.updateData,this.onTapBottomNavigation});
+  EditExpensePage({this.updateData, this.onTapBottomNavigation});
   final String updateData;
   final Function onTapBottomNavigation;
   @override
-  _EditExpenseState createState() => _EditExpenseState(updateData: updateData,onTapBottomNavigation: onTapBottomNavigation);
+  _EditExpenseState createState() => _EditExpenseState(
+      updateData: updateData, onTapBottomNavigation: onTapBottomNavigation);
 }
 
 class _EditExpenseState extends State<EditExpensePage> {
-  _EditExpenseState({this.updateData,this.onTapBottomNavigation});
+  _EditExpenseState({this.updateData, this.onTapBottomNavigation});
   Function onTapBottomNavigation;
   String updateData;
   final priceFormKey = new GlobalKey<_PriceInputFormState>();
   //InOrOutButtonFormState
   final categorySelectorKey = new GlobalKey<_CategorySelectorFormState>();
+  Widget priceInputFormWidget;
 
-  void switchCategoryLabel(){
+  void switchCategoryLabel() {
     categorySelectorKey.currentState.setCategoryLabel();
   }
 
   @override
   void initState() {
+    if (Platform.isAndroid) {
+      priceInputFormWidget = PriceFormAndroid(key: priceFormKey);
+    } else {
+      priceInputFormWidget = PriceInputForm(key: priceFormKey);
+    }
     super.initState();
   }
 
@@ -37,36 +45,34 @@ class _EditExpenseState extends State<EditExpensePage> {
     super.dispose();
   }
 
-  Future insertData()async{
+  Future insertData() async {
     String selectedCategory;
-    if(EditorInputtedData.outOrInBool){
-      selectedCategory=EditorInputtedData.outSelectedCategory;
-    }else{
-      selectedCategory=EditorInputtedData.inSelectedCategory;
+    if (EditorInputtedData.outOrInBool) {
+      selectedCategory = EditorInputtedData.outSelectedCategory;
+    } else {
+      selectedCategory = EditorInputtedData.inSelectedCategory;
     }
-    if(updateData==null){
+    if (updateData == null) {
       //追加
       //oldData[0]
       await ExpensesTableDB.insertData(
-          createTime:DateTime.now().toString(),
+          createTime: DateTime.now().toString(),
           year: EditorInputtedData.selectedDay.year.toString(),
           month: EditorInputtedData.selectedDay.month.toString(),
           day: EditorInputtedData.selectedDay.day.toString(),
-          category:selectedCategory,
-          inOrOut:EditorInputtedData.outOrInBool.toString(),
-          price:EditorInputtedData.inputPrice.toString()
-      );
-    }else{
+          category: selectedCategory,
+          inOrOut: EditorInputtedData.outOrInBool.toString(),
+          price: EditorInputtedData.inputPrice.toString());
+    } else {
       //更新
       await ExpensesTableDB.updateData(
-          createTime:updateData,
+          createTime: updateData,
           year: EditorInputtedData.selectedDay.year.toString(),
           month: EditorInputtedData.selectedDay.month.toString(),
           day: EditorInputtedData.selectedDay.day.toString(),
-          category:selectedCategory,
-          inOrOut:EditorInputtedData.outOrInBool.toString(),
-          price:EditorInputtedData.inputPrice.toString()
-      );
+          category: selectedCategory,
+          inOrOut: EditorInputtedData.outOrInBool.toString(),
+          price: EditorInputtedData.inputPrice.toString());
     }
   }
 
@@ -76,38 +82,35 @@ class _EditExpenseState extends State<EditExpensePage> {
       children: <Widget>[
         Column(
           children: <Widget>[
-            InOrOutButtonForm(switchCategoryLabel:switchCategoryLabel),
-            PriceInputForm(key:priceFormKey),
+            InOrOutButtonForm(switchCategoryLabel: switchCategoryLabel),
+            priceInputFormWidget,
             CategorySelectorForm(key: categorySelectorKey),
             DataSelectorForm(),
             Container(
               height: MediaQuery.of(context).size.height / 6,
               child: Center(
-                child: Container(
-                  width: MediaQuery.of(context).size.width*2/3,
-                  child: RaisedButton(
-                    color: Colors.green[300],
-                    child: Text(
-                      '保存',
-                      style: TextStyle().copyWith(
-                        fontSize: 30.0,
-                        color: Colors.white
-                      ),
-                    ),
-                    onPressed: () {
-                      insertData();
-                      FocusScope.of(context).requestFocus(FocusNode());
-                      EditorInputtedData.inputPrice=0;
-                      priceFormKey.currentState.setPrice();
-                      if(updateData!=null){
-                        Navigator.of(context).pop(true);
-                      }else{
-                        onTapBottomNavigation(0);
-                      }
-                    },
+                  child: Container(
+                width: MediaQuery.of(context).size.width * 2 / 3,
+                child: RaisedButton(
+                  color: Colors.green[300],
+                  child: Text(
+                    '保存',
+                    style: TextStyle()
+                        .copyWith(fontSize: 30.0, color: Colors.white),
                   ),
-                )
-              ),
+                  onPressed: () {
+                    insertData();
+                    FocusScope.of(context).requestFocus(FocusNode());
+                    EditorInputtedData.inputPrice = 0;
+                    priceFormKey.currentState.setPrice();
+                    if (updateData != null) {
+                      Navigator.of(context).pop(true);
+                    } else {
+                      onTapBottomNavigation(0);
+                    }
+                  },
+                ),
+              )),
             )
           ],
         )
@@ -122,7 +125,7 @@ class PriceInputForm extends StatefulWidget {
   _PriceInputFormState createState() => new _PriceInputFormState();
 }
 
-class _PriceInputFormState extends State<PriceInputForm>{
+class _PriceInputFormState extends State<PriceInputForm> {
   TextEditingController moneyTxtCtrl = TextEditingController();
   final FocusNode txtFocus = FocusNode();
   TextSelectionControls txtSelectionCtrl;
@@ -141,16 +144,16 @@ class _PriceInputFormState extends State<PriceInputForm>{
   void initState() {
     setPrice();
     txtFocus.addListener(() {
-      if(!txtFocus.hasFocus){
-        EditorInputtedData.inputPrice=int.parse(moneyTxtCtrl.text);
+      if (!txtFocus.hasFocus) {
+        EditorInputtedData.inputPrice = int.parse(moneyTxtCtrl.text);
       }
     });
     super.initState();
   }
 
-  void setPrice(){
+  void setPrice() {
     setState(() {
-      moneyTxtCtrl.text=EditorInputtedData.inputPrice.toString();
+      moneyTxtCtrl.text = EditorInputtedData.inputPrice.toString();
     });
   }
 
@@ -167,7 +170,6 @@ class _PriceInputFormState extends State<PriceInputForm>{
                 config: _buildConfig(context),
                 child: TextField(
                   showCursor: false,
-                  //backgroundCursorColor: Colors.black,
                   keyboardType: TextInputType.numberWithOptions(),
                   style: TextStyle().copyWith(
                     fontSize: 30.0,
@@ -175,17 +177,17 @@ class _PriceInputFormState extends State<PriceInputForm>{
                   controller: moneyTxtCtrl,
                   focusNode: txtFocus,
                   onChanged: (value) {
-                    if(RegExp('^00').hasMatch(value)){
-                      moneyTxtCtrl.text='0';
+                    if (RegExp('^00').hasMatch(value)) {
+                      moneyTxtCtrl.text = '0';
                     }
-                    if(RegExp('^0[0-9]').hasMatch(value)){
-                      moneyTxtCtrl.text=RegExp('[^0]').firstMatch(value).group(0);
+                    if (RegExp('^0[0-9]').hasMatch(value)) {
+                      moneyTxtCtrl.text =
+                          RegExp('[^0]').firstMatch(value).group(0);
                     }
-                    if(value==''){
-                      moneyTxtCtrl.text='0';
+                    if (value == '') {
+                      moneyTxtCtrl.text = '0';
                     }
-                    //txtSelectionCtrl.handlePaste();
-                    EditorInputtedData.inputPrice=int.parse(value);
+                    EditorInputtedData.inputPrice = int.parse(value);
                   },
                   enableInteractiveSelection: false,
                 )),
@@ -208,14 +210,16 @@ class _PriceInputFormState extends State<PriceInputForm>{
 }
 
 class InOrOutButtonForm extends StatefulWidget {
-  InOrOutButtonForm({Key key,this.switchCategoryLabel}) : super(key: key);
+  InOrOutButtonForm({Key key, this.switchCategoryLabel}) : super(key: key);
   final Function switchCategoryLabel;
   @override
-  InOrOutButtonFormState createState() => new InOrOutButtonFormState(EditorInputtedData.outOrInBool,switchCategoryLabel: switchCategoryLabel);
+  InOrOutButtonFormState createState() =>
+      new InOrOutButtonFormState(EditorInputtedData.outOrInBool,
+          switchCategoryLabel: switchCategoryLabel);
 }
 
 class InOrOutButtonFormState extends State<InOrOutButtonForm> {
-  InOrOutButtonFormState(this.outOrInBool,{this.switchCategoryLabel});
+  InOrOutButtonFormState(this.outOrInBool, {this.switchCategoryLabel});
   Function switchCategoryLabel;
   Color inButtonColor = Colors.grey;
   Color outButtonColor = Colors.blue;
@@ -230,7 +234,7 @@ class InOrOutButtonFormState extends State<InOrOutButtonForm> {
         inButtonColor = falseColor;
         outButtonColor = trueColor;
       });
-    }else{
+    } else {
       setState(() {
         inButtonColor = trueColor;
         outButtonColor = falseColor;
@@ -242,7 +246,7 @@ class InOrOutButtonFormState extends State<InOrOutButtonForm> {
   void switchBool(bool whichButton) {
     if (outOrInBool != whichButton) {
       EditorInputtedData.outOrInBool = !EditorInputtedData.outOrInBool;
-      outOrInBool=!outOrInBool;
+      outOrInBool = !outOrInBool;
       if (outOrInBool) {
         setState(() {
           inButtonColor = falseColor;
@@ -261,7 +265,6 @@ class InOrOutButtonFormState extends State<InOrOutButtonForm> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      //color: Colors.grey,
       child: Center(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -310,11 +313,11 @@ class _CategorySelectorFormState extends State<CategorySelectorForm> {
   }
 
   void setCategoryLabel() {
-    String label='';
-    if(EditorInputtedData.outOrInBool){
-      label=EditorInputtedData.outSelectedCategory;
-    }else{
-      label=EditorInputtedData.inSelectedCategory;
+    String label = '';
+    if (EditorInputtedData.outOrInBool) {
+      label = EditorInputtedData.outSelectedCategory;
+    } else {
+      label = EditorInputtedData.inSelectedCategory;
     }
     setState(() {
       categoryLabel = label;
@@ -330,18 +333,17 @@ class _CategorySelectorFormState extends State<CategorySelectorForm> {
             child: Text('分類:'),
           ),
           Expanded(
-            child:Center(
+            child: Center(
               child: Text(categoryLabel),
             ),
           )
-
         ],
       ),
       trailing: Icon(Icons.expand_more),
       onTap: () {
         Navigator.of(context)
-            .push(MaterialPageRoute(
-            builder: (context) => SelectCategoryPage())).then((value){
+            .push(MaterialPageRoute(builder: (context) => SelectCategoryPage()))
+            .then((value) {
           setCategoryLabel();
         });
       },
@@ -356,7 +358,7 @@ class DataSelectorForm extends StatefulWidget {
 }
 
 class _DataSelectorFormState extends State<DataSelectorForm> {
-  String selectDayLabel='';
+  String selectDayLabel = '';
 
   @override
   void initState() {
@@ -364,12 +366,14 @@ class _DataSelectorFormState extends State<DataSelectorForm> {
     super.initState();
   }
 
-  void setDayLabel(DateTime selectDay){
+  void setDayLabel(DateTime selectDay) {
     setState(() {
-      selectDayLabel=
-          selectDay.year.toString()+'年'+
-              selectDay.month.toString()+'月'+
-              selectDay.day.toString()+'日';
+      selectDayLabel = selectDay.year.toString() +
+          '年' +
+          selectDay.month.toString() +
+          '月' +
+          selectDay.day.toString() +
+          '日';
     });
   }
 
@@ -382,29 +386,188 @@ class _DataSelectorFormState extends State<DataSelectorForm> {
             child: Text('日付:'),
           ),
           Expanded(
-            child:Center(
-              child: Text(selectDayLabel)
-            ),
+            child: Center(child: Text(selectDayLabel)),
           )
-
         ],
       ),
       trailing: Icon(Icons.expand_more),
       onTap: () {
-        DatePicker.showDatePicker(
-            context,
+        DatePicker.showDatePicker(context,
             showTitleActions: false,
             minTime: DateTime(2018, 1, 1),
-            maxTime: DateTime(2023, 12, 31),
-            onChanged: (date) {
-              EditorInputtedData.selectedDay=date;
-              setDayLabel(date);
-            }, onConfirm: (date) {
-              //print('confirm $date');
-            },
+            maxTime: DateTime(2023, 12, 31), onChanged: (date) {
+          EditorInputtedData.selectedDay = date;
+          setDayLabel(date);
+        },
+            onConfirm: (date) {},
             currentTime: EditorInputtedData.selectedDay,
             locale: LocaleType.jp);
       },
+    );
+  }
+}
+
+class PriceFormAndroid extends PriceInputForm {
+  PriceFormAndroid({Key key}) : super(key: key);
+  @override
+  _PriceFormAndroidState createState() => new _PriceFormAndroidState();
+}
+
+class _PriceFormAndroidState extends _PriceInputFormState {
+  int keyNum = 0;
+  String inputPrice = '0';
+
+  @override
+  void setPrice() {
+    setState(() {
+      inputPrice = EditorInputtedData.inputPrice.toString();
+    });
+  }
+
+  @override
+  void initState() {
+    inputPrice = EditorInputtedData.inputPrice.toString();
+    super.initState();
+  }
+
+  void showKeyboard() {
+    showModalBottomSheet(
+        context: context,
+        elevation: 0.0,
+        builder: (BuildContext context) {
+          keyNum = 1;
+          List<Widget> keyList = [];
+          for (int i = 0; i < 3; i++) {
+            keyList.add(Expanded(flex: 1, child: rowBuilder()));
+          }
+          keyList.add(Expanded(
+              flex: 1,
+              child: Row(
+                children: <Widget>[
+                  doneKey(),
+                  keyBuilder('0'),
+                  deleteKey(),
+                ],
+              )));
+          return Container(
+            height: 250,
+            child: Column(children: keyList),
+          );
+        });
+  }
+
+  Widget deleteKey() {
+    return Expanded(
+      child: InkWell(
+        child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(width: 0.0, color: Colors.white),
+              color: Colors.blue.withOpacity(0.7),
+            ),
+            child: Center(child: Icon(Icons.backspace))),
+        onTap: () {
+          inputPrice = inputPrice.substring(0, inputPrice.length - 1);
+          if (inputPrice == '') {
+            inputPrice = '0';
+          }
+          setState(() {
+            inputPrice = inputPrice;
+          });
+          EditorInputtedData.inputPrice = int.parse(inputPrice);
+        },
+      ),
+    );
+  }
+
+  Widget doneKey() {
+    return Expanded(
+      child: InkWell(
+        child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(width: 0.0, color: Colors.white),
+              color: Colors.blue.withOpacity(0.7),
+            ),
+            child: Center(
+                child: Text(
+              'Done',
+              style: TextStyle(color: Colors.white,fontSize: 20.0),
+            ))),
+        onTap: () {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  Widget rowBuilder() {
+    List<Widget> rowKeys = [];
+    for (int i = 0; i < 3; i++) {
+      rowKeys.add(keyBuilder(keyNum.toString()));
+    }
+    return Row(children: rowKeys);
+  }
+
+  Widget keyBuilder(String label) {
+    keyNum++;
+    return Expanded(
+      child: InkWell(
+        child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(width: 0.0, color: Colors.white),
+              color: Colors.blue.withOpacity(0.7),
+            ),
+            child: Center(
+                child: Text(
+              label.toString(),
+              style: TextStyle(color: Colors.white, fontSize: 25.0),
+            ))),
+        splashColor: Colors.white,
+        onTap: () {
+          inputPrice = inputPrice + label;
+          if (RegExp('^00').hasMatch(inputPrice)) {
+            inputPrice = '0';
+          }
+          if (RegExp('^0[0-9]').hasMatch(inputPrice)) {
+            inputPrice = RegExp('[^0]').firstMatch(inputPrice).group(0);
+          }
+          setState(() {
+            inputPrice = inputPrice;
+          });
+          EditorInputtedData.inputPrice = int.parse(inputPrice);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: MediaQuery.of(context).size.width / 1.5,
+      height: MediaQuery.of(context).size.height / 8,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+              child: InkWell(
+            child: Container(
+              decoration: BoxDecoration(border: Border(bottom: BorderSide())),
+              child: Text(inputPrice,
+                  style: TextStyle().copyWith(
+                    fontSize: 30.0,
+                  )),
+            ),
+            onTap: () {
+              showKeyboard();
+            },
+          )),
+          Text(
+            '¥',
+            style: TextStyle().copyWith(
+              fontSize: 30.0,
+            ),
+          )
+        ],
+      ),
     );
   }
 }

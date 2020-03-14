@@ -73,6 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=0;
+                    switchAppbarLabel();
                     expenseGraphKey.currentState.loadDB(EditorInputtedData.graphSelectedDay).then((value){
                       expenseGraphKey.currentState.setGraphAndList();
                       expenseGraphKey.currentState.setHeaderLabel();
@@ -87,6 +88,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=1;
+                    switchAppbarLabel();
                     expenseGraphKey.currentState.loadDB(EditorInputtedData.graphSelectedDay).then((value){
                       expenseGraphKey.currentState.setGraphAndList();
                       expenseGraphKey.currentState.setHeaderLabel();
@@ -101,6 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleDialogOption(
                   onPressed: (){
                     EditorInputtedData.ternNum=2;
+                    switchAppbarLabel();
                     expenseGraphKey.currentState.loadDB(EditorInputtedData.graphSelectedDay).then((value){
                       expenseGraphKey.currentState.setGraphAndList();
                       expenseGraphKey.currentState.setHeaderLabel();
@@ -168,9 +171,38 @@ class _MyHomePageState extends State<MyHomePage> {
           switchAppbarIcon();
           switchHomePage(isGraph: appbarIconBool);
           appbarIconBool = !appbarIconBool;
+          switchAppbarLabel();
         },
       )
     ];
+  }
+
+  void switchAppbarLabel(){
+    if(this.currentPageNum == 0){
+      if(widgetPages.toString().indexOf('ExpenseGraphPage')==-1){
+        setState(() {
+          this.appBarLabel='家計簿';
+        });
+      }else{
+        setState(() {
+          switch(EditorInputtedData.ternNum){
+            case 0:{
+              this.appBarLabel='日別';
+              break;}
+            case 1:{
+              this.appBarLabel='月別';
+              break;}
+            case 2:{
+              this.appBarLabel='年別';
+              break;}
+          }
+        });
+      }
+    }else{
+      setState(() {
+        this.appBarLabel = '追加';
+      });
+    }
   }
 
   @override
@@ -188,9 +220,9 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             this.currentPageNum = tappedPageNum;
           });
+          switchAppbarLabel();
           if (this.currentPageNum == 0) {
             setState(() {
-              this.appBarLabel = '家計簿';
               appbarIcons = buildAppbarIcon();
               if(widgetPages.toString().indexOf('ExpenseGraphPage')!=-1){
                 leadingIcon=buildLeadingIcon();
@@ -198,7 +230,6 @@ class _MyHomePageState extends State<MyHomePage> {
             });
           } else {
             setState(() {
-              this.appBarLabel = '追加';
               appbarIcons = [];
               leadingIcon=null;
             });

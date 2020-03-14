@@ -21,7 +21,7 @@ class _CalendarState extends State<ExpenseCalendarPage>
   CalendarController calendarCtrl;
   AnimationController _animationController;
   List<Map<String, dynamic>> monthExpenseDB;
-  Map<DateTime, List> expenseSetMap = {};
+  Map<DateTime, List<List<String>>> expenseSetMap = {};
   final expenseListKey = new GlobalKey<_ExpenseListState>();
 
   @override
@@ -45,33 +45,25 @@ class _CalendarState extends State<ExpenseCalendarPage>
     await initializeDateFormatting("ja_JP");
     int sameDayNum = 0;
     await ExpensesTableDB.connectDB();
-//DateTime.now()
     expenseSetMap = {};
     monthExpenseDB = await ExpensesTableDB.getDataFromCalendar(
         year:selectedDay.year.toString(), month:selectedDay.month.toString());
     monthExpenseDB.forEach((expenses) {
+      //monthExpenseDBはList<Map<String, dynamic>>で、マップ形式で保存した一つの品目のデータが複数入ったリスト。
+      //カレンダーからイベントとして取り出せるのはMap<DateTime,List>のため,monthExpenseDBからデータを取り出して形を変える。
+      // keyが日付、valueがその１日分の品目をまとめたList<List>で
+      //一つの品目のデータをListに置き換え、それらをまた一つのリストにする。
       if (sameDayNum == int.parse(expenses['day'])) {
-        //print(expenses['createTime']);
+        //monthExpenseDBは日付順
+        // 一つ前に取り出したデータの日付と同じ日付の場合
         expenseSetMap[
                 DateTime(int.parse(expenses['year']), int.parse(expenses['month']), int.parse(expenses['day']))]
-            .add(expenses['createTime'] +
-                '.:.' +
-                expenses['category'] +
-                '.:.' +
-                expenses['inOrOut'] +
-                '.:.' +
-                expenses['price']);
+            .add([expenses['createTime'],expenses['category'],expenses['inOrOut'],expenses['price']]);
       } else {
         expenseSetMap.addAll({
-          DateTime(int.parse(expenses['year']), int.parse(expenses['month']), int.parse(expenses['day'])): [
-            expenses['createTime'] +
-                '.:.' +
-                expenses['category'] +
-                '.:.' +
-                expenses['inOrOut'] +
-                '.:.' +
-                expenses['price']
-          ]
+          DateTime(int.parse(expenses['year']), int.parse(expenses['month']), int.parse(expenses['day'])): [[
+            expenses['createTime'],expenses['category'],expenses['inOrOut'],expenses['price']
+          ]]
         });
       }
       sameDayNum = int.parse(expenses['day']);
@@ -184,7 +176,7 @@ class _CalendarState extends State<ExpenseCalendarPage>
                   int oneDayOutgo = 0;
                   String dayTotalLabel = '';
                   expenseSet.forEach((element) {
-                    List<String> anExpense = element.split('.:.');
+                    List<String> anExpense = element;
                     if (anExpense[2] == 'true') {
                       oneDayOutgo += int.parse(anExpense[3]);
                     } else {
@@ -264,7 +256,7 @@ class _ExpenseListState extends State<ExpenseList> {
     int oneDayIncome = 0;
     int oneDayOutgo = 0;
     tileInfos.forEach((element) {
-      List<String> tileLabels = element.split('.:.');
+      List<String> tileLabels = element;
       if (tileLabels[2] == 'true') {
         inOrOutLabel = '-';
         oneDayOutgo += int.parse(tileLabels[3]);
@@ -310,6 +302,7 @@ class _ExpenseListState extends State<ExpenseList> {
           });
         },
       ));
+      listTiles.add(Divider());
     });
     var formatter = new DateFormat('yyyy/MM/dd(E)', "ja_JP");
     listTiles = <Widget>[

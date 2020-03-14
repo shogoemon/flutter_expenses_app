@@ -88,9 +88,10 @@ class _SelectCategoryPageState extends State<SelectCategoryPage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: <Widget>[
                   Container(
-                    child: Text('削除する'),
+                    child: Text('削除する',
+                    style: TextStyle(color: Colors.white),),
                   ),
-                  Icon(Icons.delete),
+                  Icon(Icons.delete,color: Colors.white,),
                 ],
               )),
           onDismissed: (direction) {

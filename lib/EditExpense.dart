@@ -35,7 +35,8 @@ class _EditExpenseState extends State<EditExpensePage> {
     if (Platform.isAndroid) {
       priceInputFormWidget = PriceFormAndroid(key: priceFormKey);
     } else {
-      priceInputFormWidget = PriceInputForm(key: priceFormKey);
+      priceInputFormWidget = PriceFormAndroid(key: priceFormKey);
+      //priceInputFormWidget = PriceInputForm(key: priceFormKey);
     }
     super.initState();
   }
@@ -84,8 +85,11 @@ class _EditExpenseState extends State<EditExpensePage> {
           children: <Widget>[
             InOrOutButtonForm(switchCategoryLabel: switchCategoryLabel),
             priceInputFormWidget,
+            Divider(),
             CategorySelectorForm(key: categorySelectorKey),
+            Divider(),
             DataSelectorForm(),
+            Divider(),
             Container(
               height: MediaQuery.of(context).size.height / 6,
               child: Center(
@@ -416,6 +420,7 @@ class PriceFormAndroid extends PriceInputForm {
 class _PriceFormAndroidState extends _PriceInputFormState {
   int keyNum = 0;
   String inputPrice = '0';
+  final priceFormKey = new GlobalKey<_PriceDisplayAndroidKeyBoardState>();
 
   @override
   void setPrice() {
@@ -449,8 +454,9 @@ class _PriceFormAndroidState extends _PriceInputFormState {
                   deleteKey(),
                 ],
               )));
+          keyList=<Widget>[PriceDisplayAndroidKeyBoard(inputPrice,key:priceFormKey)]+keyList;
           return Container(
-            height: 250,
+            height: 350,
             child: Column(children: keyList),
           );
         });
@@ -473,6 +479,7 @@ class _PriceFormAndroidState extends _PriceInputFormState {
           setState(() {
             inputPrice = inputPrice;
           });
+          priceFormKey.currentState.setLabel(inputPrice);
           EditorInputtedData.inputPrice = int.parse(inputPrice);
         },
       ),
@@ -533,6 +540,7 @@ class _PriceFormAndroidState extends _PriceInputFormState {
           setState(() {
             inputPrice = inputPrice;
           });
+          priceFormKey.currentState.setLabel(inputPrice);
           EditorInputtedData.inputPrice = int.parse(inputPrice);
         },
       ),
@@ -543,30 +551,74 @@ class _PriceFormAndroidState extends _PriceInputFormState {
   Widget build(BuildContext context) {
     return Container(
       width: MediaQuery.of(context).size.width / 1.5,
-      height: MediaQuery.of(context).size.height / 8,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: <Widget>[
-          Expanded(
-              child: InkWell(
-            child: Container(
-              decoration: BoxDecoration(border: Border(bottom: BorderSide())),
-              child: Text(inputPrice,
-                  style: TextStyle().copyWith(
-                    fontSize: 30.0,
-                  )),
+      height: MediaQuery.of(context).size.height / 6,
+      child: InkWell(
+        child: Row(
+         // mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(border: Border(bottom: BorderSide())),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(inputPrice,
+                        style: TextStyle().copyWith(
+                          fontSize: 30.0,
+                        ))
+                  ],
+                ),
+              ),
             ),
-            onTap: () {
-              showKeyboard();
-            },
-          )),
-          Text(
-            '¥',
+            Text(
+              '¥',
+              style: TextStyle().copyWith(
+                fontSize: 30.0,
+              ),
+            )
+          ],
+        ),
+          onTap: () {
+            showKeyboard();
+          }
+      ),
+    );
+  }
+}
+
+class PriceDisplayAndroidKeyBoard extends StatefulWidget{
+  PriceDisplayAndroidKeyBoard(this.priceLabel,{Key key}):super(key:key);
+  final String priceLabel;
+  @override
+  _PriceDisplayAndroidKeyBoardState createState()=> new _PriceDisplayAndroidKeyBoardState(priceLabel);
+}
+
+class _PriceDisplayAndroidKeyBoardState extends State<PriceDisplayAndroidKeyBoard>{
+  _PriceDisplayAndroidKeyBoardState(this.priceLabel);
+  String priceLabel='';
+
+  void setLabel(String label){
+    setState(() {
+      priceLabel=label;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 100,
+      color: Colors.white,
+      child: Center(
+        child: Container(
+          decoration: BoxDecoration(border: Border(bottom: BorderSide())),
+          width: MediaQuery.of(context).size.width*2/3,
+          child: Text(
+              priceLabel,
             style: TextStyle().copyWith(
               fontSize: 30.0,
             ),
-          )
-        ],
+          ),
+        ),
       ),
     );
   }

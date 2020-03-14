@@ -149,10 +149,10 @@ class ExpenseGraphPageState extends State<ExpenseGraphPage> {
     return new Column(
       children: <Widget>[
         GraphHeader(setGraphAndList, loadDB, key: graphHeaderKey),
-        GraphInOrOutButton(setGraphAndList),
         Expanded(
           child: ListView(
             children: <Widget>[
+              GraphInOrOutButton(setGraphAndList),
               SizedBox(
                   height: 250.0,
                   child: Center(
